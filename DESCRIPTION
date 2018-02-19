@@ -4,8 +4,10 @@ Version: 0.0.0.9000
 Authors@R: person("Chris", "Haarstick", email = "chrishaarstick@gmail.com", role = c("aut", "cre"))
 Description: Functionality to help manage and optimize investment portfolios.   
 Depends: R (>= 3.3.2)
-License: What license is it under?
+License: file LICENSE
 Encoding: UTF-8
 LazyData: true
 Imports:
-  tidyverse
+  tidyverse,
+  R6
+Suggests: testthat
