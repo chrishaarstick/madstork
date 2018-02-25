@@ -1,47 +1,39 @@
 
 
-#' Portfolio Object Constructor
+
+# Portfolio Class ---------------------------------------------------------
+
+
+#' Portfolio Object Constructor function
 #'
-#' Function creates a new S3 Portfolio object
+#' Function creates a new S3 portfolio object
 #'
 #' @param name name of portfolio. requires string input
-#' @param cash cash balance. requires numeric input. defaults to 0
-#' @param activity activity history. requires a data.frame input. defaults to
-#'   null
+#' @param cash cash balance. requires numeric input
 #'
-#' @return Portfolio object
-#' @export
-#'
-#' @examples
-#' new_portfolio("new_port", cash=0, activity = data.frame())
+#' @return portfolio object
 new_portfolio <- function(name,
-                          cash,
-                          activity) {
+                          cash) {
   stopifnot(is.character(name))
   stopifnot(is.numeric(cash))
-  stopifnot(is.data.frame(activity))
 
   structure(list(
     name = name,
     cash = cash,
-    activity = activity
+    activity = data.frame()
   ),
-  class = "Portfolio")
+  class = "portfolio")
 }
 
 
 
-#' Portfolio validation function
+#' Portfolio Object Validation function
 #'
 #' Validator function to check for valid inputs
 #'
-#' @param x Portfolio object
+#' @param x portfolio object
 #'
-#' @return
-#' @export
-#'
-#' @examples
-#' validate_portfolio(new_portfolio("new_port", cash=0, activity = data.frame()))
+#' @return valid portfolio object
 validate_portfolio <- function(x) {
   if (x$cash < 0) {
     stop("Loans not allowed - initial cash balance should be >= 0",
@@ -51,9 +43,62 @@ validate_portfolio <- function(x) {
 }
 
 
-# Portfolio S3 helper function
-Portfolio <- function(name,
-                      cash = 0,
-                      activity = data.frame()) {
-  validate_portfolio(new_portfolio(name, cash, activity))
+
+
+#' Portfolio creation helper function
+#'
+#' Function to create Portfolio object. Calls internal new_portfolio and
+#' validate_portfolio functions
+#'
+#' @param name name of portfolio. requires string input
+#' @param cash cash balance. requires numeric input. defaults to 0
+#'
+#' @return returns a Porftolio object
+#' @export
+#'
+#' @examples
+#' portfolio("new_port", cash=0)
+portfolio <- function(name,
+                      cash = 0) {
+  validate_portfolio(new_portfolio(name, cash))
+}
+
+
+
+#' Get Portfolio's Cash
+#'
+#' getter function to return Portfolio's cash balance
+#'
+#' @param pobj portfolio object
+#'
+#' @return numeric cash value
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_cash(.)
+get_cash <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  pobj$cash
+}
+
+
+
+#' Get Portfolio Activity
+#'
+#' getter function to return Portfolio's activity
+#'
+#' @param pobj portfolio object
+#'
+#' @return activity object
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_activity(.)
+get_activity <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  pobj$activity
 }
