@@ -1,10 +1,5 @@
 
-
-
-
-
 # Activity Class ----------------------------------------------------------
-
 
 
 #' Activity Object Constructor function
@@ -39,7 +34,6 @@ new_activity <- function(activity,
 }
 
 
-
 #' Activity Object Validation function
 #'
 #' Function to validate activity input values
@@ -57,6 +51,18 @@ validate_activity <- function(x) {
          .call = F)
   }
   x
+}
+
+
+#'@export
+as.data.frame.activity <- function(x) {
+  data.frame(
+    date_added = x$date_added,
+    activity_date = x$activity_date,
+    activity = x$activity,
+    amount = x$amount,
+    desc = x$desc
+  )
 }
 
 
@@ -81,6 +87,34 @@ deposit <- function(date, amount, desc = "") {
     desc = desc
   ))
 }
+
+
+
+
+#' Make Deposit function
+#'
+#' add deposit to portfolio. adds to cash balance and appends the deposit to the
+#' portfolio activity
+#'
+#' @param pobj portfolio object
+#' @param deposit deposit instance of activity object
+#'
+#' @return portfolio object with updated deposit
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' make_depost(deposit(date=Sys.Date(), amount = 100))
+make_deposit <- function(pobj, deposit) {
+  stopifnot(class(pobj) == "portfolio")
+  stopifnot(class(deposit) == "activity")
+
+  pobj$cash <- pobj$cash + deposit$amount
+  pobj$activity <- rbind(pobj$activity, as.data.frame(deposit))
+  pobj
+}
+
 
 #' Create Withdraw Helper function
 #'
