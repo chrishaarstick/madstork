@@ -20,7 +20,9 @@ new_portfolio <- function(name,
   structure(list(
     name = name,
     cash = cash,
-    activity = data.frame()
+    holdings = data.frame(),
+    activity = data.frame(),
+    trades = data.frame()
   ),
   class = "portfolio")
 }
@@ -89,9 +91,11 @@ get_cash <- function(pobj) {
 #'
 #' getter function to return Portfolio's activity
 #'
+#' activity relates to any portfolio cash transactions
+#'
 #' @param pobj portfolio object
 #'
-#' @return activity object
+#' @return data.frame of activity history
 #' @export
 #'
 #' @examples
@@ -101,4 +105,47 @@ get_cash <- function(pobj) {
 get_activity <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
   pobj$activity
+}
+
+
+
+#' Get Portfolio Trades
+#'
+#' getter function to return Portfolio's trades
+#'
+#' trades are portfolio investment security transactions
+#'
+#' @param pobj portfolio object
+#'
+#' @return data.frame of trade history
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_trades(.)
+get_trades <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  pobj$trades
+}
+
+
+#' Get Portfolio Holdings
+#'
+#' getter function to return Portfolio's current holdings
+#'
+#' holdings are currently held investment securities such as a stock or etf
+#'
+#' @param pobj portfolio object
+#'
+#' @return holdings data.frame
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_holdings(.)
+get_holdings <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  pobj$holdings
 }

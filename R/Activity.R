@@ -1,4 +1,5 @@
 
+
 # Activity Class ----------------------------------------------------------
 
 
@@ -6,17 +7,17 @@
 #'
 #' Function to create an object of class activity
 #'
-#' @param activity activity type. string type.
+#' @param type activity type. string type.
 #' @param date date of activity. Date type
 #' @param amount activity dollar amount. numeric type
 #' @param desc activity description. string type
 #'
 #' @return object of class activity
-new_activity <- function(activity,
+new_activity <- function(type,
                          date,
                          amount,
                          desc) {
-  stopifnot(is.character(activity))
+  stopifnot(is.character(type))
   stopifnot(lubridate::is.Date(date))
   stopifnot(is.character(desc))
   stopifnot(is.numeric(amount))
@@ -24,8 +25,8 @@ new_activity <- function(activity,
   structure(
     list(
       date_added = Sys.Date(),
-      activity_date = date,
-      activity = activity,
+      transaction_date = date,
+      type = type,
       amount = amount,
       desc = desc
     ),
@@ -46,7 +47,7 @@ validate_activity <- function(x) {
     stop("negative amount not allowed",
          .call = F)
   }
-  if (!x$activity %in% c("deposit", "withdraw", "fee")) {
+  if (!x$type %in% c("deposit", "withdraw", "fee")) {
     stop("activity type not supported. only deposit, withdraw, fee types allowed",
          .call = F)
   }
@@ -58,8 +59,8 @@ validate_activity <- function(x) {
 as.data.frame.activity <- function(x) {
   data.frame(
     date_added = x$date_added,
-    activity_date = x$activity_date,
-    activity = x$activity,
+    transaction_date = x$transaction_date,
+    type = x$type,
     amount = x$amount,
     desc = x$desc
   )
@@ -81,14 +82,12 @@ as.data.frame.activity <- function(x) {
 #' deposit(Sys.Date(), 100, "monthly investment deposit")
 deposit <- function(date, amount, desc = "") {
   validate_activity(new_activity(
-    activity = "deposit",
+    type = "deposit",
     date = date,
     amount = amount,
     desc = desc
   ))
 }
-
-
 
 
 #' Make Deposit function
@@ -99,7 +98,7 @@ deposit <- function(date, amount, desc = "") {
 #' portfolio activity
 #'
 #' @param pobj portfolio object
-#' @param deposit deposit instance of activity object
+#' @inheritParams deposit
 #'
 #' @return portfolio object with updated deposit
 #' @export
@@ -107,13 +106,14 @@ deposit <- function(date, amount, desc = "") {
 #' @examples
 #' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
-#' make_deposit(deposit(date=Sys.Date(), amount = 100))
-make_deposit <- function(pobj, deposit) {
+#' make_deposit(date=Sys.Date(), amount = 100)
+make_deposit <- function(pobj, date, amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
-  stopifnot(class(deposit) == "activity")
+  action <- deposit(date, amount, desc = "")
+  action_df <- as.data.frame(action)
 
-  pobj$cash <- pobj$cash + deposit$amount
-  pobj$activity <- rbind(pobj$activity, as.data.frame(deposit))
+  pobj$cash <- pobj$cash + action$amount
+  pobj$activity <- rbind(pobj$activity, action_df)
   pobj
 }
 
@@ -133,7 +133,7 @@ make_deposit <- function(pobj, deposit) {
 #' withdraw(Sys.Date(), 100, "monthly withdraw")
 withdraw <- function(date, amount, desc = "") {
   validate_activity(new_activity(
-    activity = "withdraw",
+    type = "withdraw",
     date = date,
     amount = amount,
     desc = desc
@@ -147,24 +147,26 @@ withdraw <- function(date, amount, desc = "") {
 #'
 #' subtracts withdraw amount from cash balance and adds record to actvity
 #'
-#' @param pobj
-#' @param withdraw
+#' @param pobj portfolio object
+#' @inheritParams withdraw
 #'
-#' @return
+#' @return updated portfolio object
 #' @export
 #'
 #' @examples
+#' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
-#' make_withdraw(withdraw(date=Sys.Date(), amount = 50)
-make_withdraw <- function(pobj, withdraw){
+#' make_withdraw(date=Sys.Date(), amount = 50)
+make_withdraw <- function(pobj, date, amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
-  stopifnot(class(withdraw) == "activity")
+  action <- withdraw(date, amount, desc)
+  action_df <- as.data.frame(action)
 
-  if( withdraw$amount > pobj$cash){
+  if (action$amount > pobj$cash) {
     stop("Withdraw amount greater than cash available",
-         .call=FALSE)
+         .call = FALSE)
   }
-  pobj$cash <- pobj$cash - withdraw$amount
-  pobj$activity <- rbind(pobj$activity, as.data.frame(withdraw))
+  pobj$cash <- pobj$cash - action$amount
+  pobj$activity <- rbind(pobj$activity, action_df)
   pobj
 }
