@@ -30,9 +30,14 @@ test_that("activity validator function works as expected", {
 
 
 test_that("activity make functions work as expected", {
-  a1 <- deposit(date = Sys.Date(), amount = 100)
+  d1 <- deposit(date = Sys.Date(), amount = 100)
+  w1 <- withdraw(date = Sys.Date(), amount = 150)
   p1 <- portfolio("new_port", cash = 100) %>%
-    make_deposit(a1)
+    make_deposit(d1)
+  p2 <- p1 %>% make_withdraw(w1)
+
   expect_equal(p1$cash, 200)
-  expect_equal(p1$activity, as.data.frame(a1))
+  expect_equal(p2$cash, 50)
+  expect_equal(p1$activity, as.data.frame(d1))
+  expect_error(p1 %>% make_withdraw(withdraw(date = Sys.Date(), amount = 300)))
 })

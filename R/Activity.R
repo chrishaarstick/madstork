@@ -93,7 +93,9 @@ deposit <- function(date, amount, desc = "") {
 
 #' Make Deposit function
 #'
-#' add deposit to portfolio. adds to cash balance and appends the deposit to the
+#' add deposit to portfolio
+#'
+#' adds to cash balance and appends the deposit to the
 #' portfolio activity
 #'
 #' @param pobj portfolio object
@@ -105,7 +107,7 @@ deposit <- function(date, amount, desc = "") {
 #' @examples
 #' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
-#' make_depost(deposit(date=Sys.Date(), amount = 100))
+#' make_deposit(deposit(date=Sys.Date(), amount = 100))
 make_deposit <- function(pobj, deposit) {
   stopifnot(class(pobj) == "portfolio")
   stopifnot(class(deposit) == "activity")
@@ -136,4 +138,33 @@ withdraw <- function(date, amount, desc = "") {
     amount = amount,
     desc = desc
   ))
+}
+
+
+#' Make Withdraw function
+#'
+#' make withdraw from a portfolio
+#'
+#' subtracts withdraw amount from cash balance and adds record to actvity
+#'
+#' @param pobj
+#' @param withdraw
+#'
+#' @return
+#' @export
+#'
+#' @examples
+#' portfolio("new_port", cash = 100) %>%
+#' make_withdraw(withdraw(date=Sys.Date(), amount = 50)
+make_withdraw <- function(pobj, withdraw){
+  stopifnot(class(pobj) == "portfolio")
+  stopifnot(class(withdraw) == "activity")
+
+  if( withdraw$amount > pobj$cash){
+    stop("Withdraw amount greater than cash available",
+         .call=FALSE)
+  }
+  pobj$cash <- pobj$cash - withdraw$amount
+  pobj$activity <- rbind(pobj$activity, as.data.frame(withdraw))
+  pobj
 }
