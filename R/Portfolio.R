@@ -22,7 +22,8 @@ new_portfolio <- function(name,
     cash = cash,
     holdings = data.frame(),
     activity = data.frame(),
-    trades = data.frame()
+    trades = data.frame(),
+    realized_gains = data.frame()
   ),
   class = "portfolio")
 }
@@ -149,3 +150,27 @@ get_holdings <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
   pobj$holdings
 }
+
+
+
+#' Get Portfolio Realized Gains
+#'
+#' getter function to return Portfolio's realized gains
+#'
+#' realized gains are gains or losses as a result of investment activity.
+#' Realized when sold
+#'
+#' @param pobj portfolio object
+#'
+#' @return realized_gains data.frame
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_realized_gains(.)
+get_realized_gains <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  pobj$realized_gains
+}
+

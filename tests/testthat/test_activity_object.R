@@ -36,6 +36,8 @@ test_that("activity make functions work as expected", {
 
   expect_equal(p1$cash, 200)
   expect_equal(p2$cash, 50)
-  expect_equal(p1 %>% get_activity(), as.data.frame(deposit(date = Sys.Date(), amount = 100)))
+  expect_equal(p1 %>% get_activity(),
+               as.data.frame(deposit(date = Sys.Date(), amount = 100)) %>%
+                 mutate(id = 1))
   expect_error(p1 %>% make_withdraw(date = Sys.Date(), amount = 300))
 })

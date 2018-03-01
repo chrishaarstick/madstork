@@ -2,6 +2,7 @@
 
 
 
+
 # Trade Class -------------------------------------------------------------
 
 #' Trade Object Constructor function
@@ -131,6 +132,7 @@ buy <- function(date,
 #'
 #' @param pobj portfolio object
 #' @inheritParams buy
+#' @importFrom magrittr %>%
 #'
 #' @return updated portfolio object
 #' @export
@@ -139,22 +141,40 @@ buy <- function(date,
 #' library(tidyverse)
 #' portfolio("new_port", cash = 1000) %>%
 #' make_buy(date = Sys.Date(), symbol = "SPY", quantity = 10, price = 100)
-make_buy <- function(pobj, date, symbol, quantity, price, desc = "") {
-  stopifnot(class(pobj) == "portfolio")
-  trade <- buy(date, symbol, quantity, price, desc)
-  trade_df <- as.data.frame(trade)
+make_buy <- function(pobj,
+                     date,
+                     symbol,
+                     quantity,
+                     price,
+                     desc = "") {
+    stopifnot(class(pobj) == "portfolio")
+    trade <- buy(date, symbol, quantity, price, desc)
+    trade_df <- as.data.frame(trade) %>%
+      dplyr::mutate(id = max(pobj$trades$id, 0)+1)
 
-  if (pobj$cash < trade$amount) {
-    stop("Trade amount more than cash available. Insufficient cash to make buy trade",
-         .call = FALSE)
+    if (pobj$cash < trade$amount) {
+      stop("Trade amount more than cash available. Insufficient cash to make buy trade",
+           .call = FALSE)
+    }
+
+    pobj$cash <- pobj$cash - trade$amount
+    pobj$trades <- rbind(pobj$trades, trade_df)
+    pobj$holdings <- rbind(
+      pobj$holdings,
+      trade_df %>%
+        dplyr::select(
+          id,
+          date_added,
+          transaction_date,
+          symbol,
+          quantity,
+          price,
+          desc
+        )
+    )
+
+    pobj
   }
-
-  pobj$cash <- pobj$cash - trade$amount
-  pobj$trades <- rbind(pobj$trades, trade_df)
-
-  #--- update holdings to do ---#
-  pobj
-}
 
 
 #' Create Sell Trade Constructor function
@@ -183,3 +203,54 @@ sell <- function(date,
     desc
   ))
 }
+
+
+#' Make Sell Trade Execution function
+#'
+#' Function executions a sell trade
+#'
+#' add trade amount to cash balance, updates portfolio internal trade
+#' history and holdings
+#'
+#' @param pobj portfolio object
+#' @param id trade id of holding to sell
+#' @inheritParams sell
+#' @importFrom magrittr %>%
+#'
+#' @return updated portfolio object
+#' @export
+#'
+#' @examples
+make_sell <- function(pobj,
+                      id,
+                      date,
+                      symbol,
+                      quantity,
+                      price,
+                      desc = ""){
+  stopifnot(class(pobj) == "portfolio")
+  stopifnot(class(id) == "numeric")
+  trade <- sell(date, symbol, quantity, price, desc)
+  trade_df <- as.data.frame(trade) %>%
+    dplyr::mutate(id = max(pobj$trades$id, 0)+1)
+  holding <- pobj$holdings %>% dplyr::filter(id == id)
+
+  if (trade$quantity > holding$quantity) {
+    stop("Trade quantity greater than holding amount. No short trades allowed.
+Trade cancelled",
+         .call = FALSE)
+  }
+
+  new_holding <- holding
+  new_holding$quantity <- new_holding$quantity - trade$quantity
+  new_holding$amount <-
+
+  pobj$cash <- pobj$cash + trade$amount
+  pobj$trades <- rbind(pobj$trades, trade_df)
+  #pobj$holdings <-
+
+  pobj
+}
+
+
+

@@ -28,4 +28,5 @@ test_that("trade make functions work as expected", {
   expect_equal(nrow(p1$trades), 1)
   expect_equal(p1$activity$date_added, Sys.Date())
   expect_equal(p1$trade$date_added, Sys.Date())
+  expect_error(p1 %>% make_buy(Sys.Date(), symbol = "SPY", quantity = 10, price = 100))
 })

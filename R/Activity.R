@@ -110,7 +110,8 @@ deposit <- function(date, amount, desc = "") {
 make_deposit <- function(pobj, date, amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
   action <- deposit(date, amount, desc = "")
-  action_df <- as.data.frame(action)
+  action_df <- as.data.frame(action) %>%
+    dplyr::mutate(id = max(pobj$activity$id,0)+1)
 
   pobj$cash <- pobj$cash + action$amount
   pobj$activity <- rbind(pobj$activity, action_df)
@@ -149,6 +150,7 @@ withdraw <- function(date, amount, desc = "") {
 #'
 #' @param pobj portfolio object
 #' @inheritParams withdraw
+#' @importFrom magrittr %>%
 #'
 #' @return updated portfolio object
 #' @export
@@ -160,7 +162,8 @@ withdraw <- function(date, amount, desc = "") {
 make_withdraw <- function(pobj, date, amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
   action <- withdraw(date, amount, desc)
-  action_df <- as.data.frame(action)
+  action_df <- as.data.frame(action) %>%
+    dplyr::mutate(id = max(pobj$activity$id,0)+1)
 
   if (action$amount > pobj$cash) {
     stop("Withdraw amount greater than cash available",
