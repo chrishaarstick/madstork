@@ -4,12 +4,16 @@
 \alias{make_deposit}
 \title{Make Deposit function}
 \usage{
-make_deposit(pobj, deposit)
+make_deposit(pobj, date, amount, desc = "")
 }
 \arguments{
 \item{pobj}{portfolio object}
 
-\item{deposit}{deposit instance of activity object}
+\item{date}{date of deposit. Date type}
+
+\item{amount}{amount of deposit. numeric type}
+
+\item{desc}{optional description of deposit. string type}
 }
 \value{
 portfolio object with updated deposit
@@ -24,5 +28,5 @@ portfolio activity
 \examples{
 library(tidyverse)
 portfolio("new_port", cash = 100) \%>\%
-make_deposit(deposit(date=Sys.Date(), amount = 100))
+make_deposit(date=Sys.Date(), amount = 100)
 }

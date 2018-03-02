@@ -4,10 +4,19 @@
 \alias{make_withdraw}
 \title{Make Withdraw function}
 \usage{
-make_withdraw(pobj, withdraw)
+make_withdraw(pobj, date, amount, desc = "")
 }
 \arguments{
-\item{withdraw}{}
+\item{pobj}{portfolio object}
+
+\item{date}{date of deposit. Date type}
+
+\item{amount}{amount of deposit. numeric type}
+
+\item{desc}{optional description of deposit. string type}
+}
+\value{
+updated portfolio object
 }
 \description{
 make withdraw from a portfolio
@@ -16,6 +25,7 @@ make withdraw from a portfolio
 subtracts withdraw amount from cash balance and adds record to actvity
 }
 \examples{
+library(tidyverse)
 portfolio("new_port", cash = 100) \%>\%
-make_withdraw(withdraw(date=Sys.Date(), amount = 50)
+make_withdraw(date=Sys.Date(), amount = 50)
 }

@@ -4,10 +4,10 @@
 \alias{new_activity}
 \title{Activity Object Constructor function}
 \usage{
-new_activity(activity, date, amount, desc)
+new_activity(type, date, amount, desc)
 }
 \arguments{
-\item{activity}{activity type. string type.}
+\item{type}{activity type. string type.}
 
 \item{date}{date of activity. Date type}
 
