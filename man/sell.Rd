@@ -2,7 +2,7 @@
 % Please edit documentation in R/Trades.R
 \name{sell}
 \alias{sell}
-\title{Create Sell Trade Constructor function}
+\title{Create Sell Trade Helper function}
 \usage{
 sell(date, symbol, quantity, price, desc = "")
 }

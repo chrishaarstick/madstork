@@ -31,3 +31,10 @@ Function executions a sell trade
 add trade amount to cash balance, updates portfolio internal trade
 history and holdings
 }
+\examples{
+library(tidyverse)
+ p1 <- portfolio("new_port", cash=0) \%>\%
+       make_deposit(Sys.Date(), amount = 1000) \%>\%
+       make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) \%>\%
+       make_sell(id = 1, date = Sys.Date(), symbol = "SPY", quantity = 5, price = 105)
+}

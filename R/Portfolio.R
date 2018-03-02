@@ -20,10 +20,11 @@ new_portfolio <- function(name,
   structure(list(
     name = name,
     cash = cash,
+    tax_liability = 0,
     holdings = data.frame(),
     activity = data.frame(),
     trades = data.frame(),
-    realized_gains = data.frame()
+    gains = data.frame()
   ),
   class = "portfolio")
 }
@@ -44,7 +45,6 @@ validate_portfolio <- function(x) {
   }
   x
 }
-
 
 
 
@@ -152,6 +152,20 @@ get_holdings <- function(pobj) {
 }
 
 
+#' Get Holding helper function
+#'
+#' @param pobj portfolio object
+#' @param .id id of holding to extract
+#'
+#' @return holding with id == .id
+#' @export
+get_holding <- function(pobj, .id){
+  stopifnot(class(pobj) == "portfolio")
+  stopifnot(is.numeric(.id))
+  pobj$holdings %>%
+    dplyr::filter_at('id',  any_vars(. == .id))
+}
+
 
 #' Get Portfolio Realized Gains
 #'
@@ -162,15 +176,32 @@ get_holdings <- function(pobj) {
 #'
 #' @param pobj portfolio object
 #'
-#' @return realized_gains data.frame
+#' @return Portfolio's realized gains
 #' @export
 #'
 #' @examples
 #' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
-#' get_realized_gains(.)
-get_realized_gains <- function(pobj) {
+#' get_gains(.)
+get_gains <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$realized_gains
+  pobj$gains
 }
 
+
+
+#' Get Portfolio Tax Liability
+#'
+#' @param pobj portfolio object
+#'
+#' @return Porfolio's current tax liability
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_tax_liability(.)
+get_tax_liability <- function(pobj){
+  stopifnot(class(pobj) == "portfolio")
+  pobj$tax_liability
+}

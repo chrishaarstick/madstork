@@ -3,6 +3,10 @@
 
 
 
+
+
+
+
 # Trade Class -------------------------------------------------------------
 
 #' Trade Object Constructor function
@@ -21,8 +25,8 @@
 new_trade <- function(type,
                       date,
                       symbol,
-                      price,
                       quantity,
+                      price,
                       amount,
                       desc) {
   stopifnot(is.character(type))
@@ -95,7 +99,7 @@ as.data.frame.trade <- function(x) {
 }
 
 
-#' Create Buy Trade Constructor function
+#' Create Buy Trade Helper function
 #'
 #' Creates a buy type of trade object
 #'
@@ -147,37 +151,37 @@ make_buy <- function(pobj,
                      quantity,
                      price,
                      desc = "") {
-    stopifnot(class(pobj) == "portfolio")
-    trade <- buy(date, symbol, quantity, price, desc)
-    trade_df <- as.data.frame(trade) %>%
-      dplyr::mutate(id = max(pobj$trades$id, 0)+1)
+  stopifnot(class(pobj) == "portfolio")
+  trade <- buy(date, symbol, quantity, price, desc)
+  trade_df <- as.data.frame(trade) %>%
+    dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
 
-    if (pobj$cash < trade$amount) {
-      stop("Trade amount more than cash available. Insufficient cash to make buy trade",
-           .call = FALSE)
-    }
-
-    pobj$cash <- pobj$cash - trade$amount
-    pobj$trades <- rbind(pobj$trades, trade_df)
-    pobj$holdings <- rbind(
-      pobj$holdings,
-      trade_df %>%
-        dplyr::select(
-          id,
-          date_added,
-          transaction_date,
-          symbol,
-          quantity,
-          price,
-          desc
-        )
-    )
-
-    pobj
+  if (pobj$cash < trade$amount) {
+    stop("Trade amount more than cash available. Insufficient cash to make buy trade",
+         .call = FALSE)
   }
 
+  pobj$cash <- pobj$cash - trade$amount
+  pobj$trades <- rbind(pobj$trades, trade_df)
+  pobj$holdings <- rbind(
+    pobj$holdings,
+    trade_df %>%
+      dplyr::select(
+        id,
+        date_added,
+        transaction_date,
+        symbol,
+        quantity,
+        price,
+        desc
+      )
+  )
 
-#' Create Sell Trade Constructor function
+  pobj
+}
+
+
+#' Create Sell Trade Helper function
 #'
 #' Creates a sell type of trade object
 #'
@@ -221,36 +225,45 @@ sell <- function(date,
 #' @export
 #'
 #' @examples
+#' library(tidyverse)
+#'  p1 <- portfolio("new_port", cash=0) %>%
+#'        make_deposit(Sys.Date(), amount = 1000) %>%
+#'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
+#'        make_sell(id = 1, date = Sys.Date(), symbol = "SPY", quantity = 5, price = 105)
+
 make_sell <- function(pobj,
                       id,
                       date,
                       symbol,
                       quantity,
                       price,
-                      desc = ""){
+                      desc = "") {
   stopifnot(class(pobj) == "portfolio")
   stopifnot(class(id) == "numeric")
   trade <- sell(date, symbol, quantity, price, desc)
-  trade_df <- as.data.frame(trade) %>%
-    dplyr::mutate(id = max(pobj$trades$id, 0)+1)
-  holding <- pobj$holdings %>% dplyr::filter(id == id)
+  holding <- pobj %>% get_holding(id)
 
   if (trade$quantity > holding$quantity) {
-    stop("Trade quantity greater than holding amount. No short trades allowed.
-Trade cancelled",
+    stop("Trade quantity greater than holding amount. No short trades allowed.",
          .call = FALSE)
   }
 
+  trade_df <- as.data.frame(trade) %>%
+    dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
+
   new_holding <- holding
   new_holding$quantity <- new_holding$quantity - trade$quantity
-  new_holding$amount <-
+  gain <- gains(trade, holding) %>%
+    add_tax_liability() %>%
+    dplyr::mutate(id = max(pobj$gains$id, 0) + 1)
 
   pobj$cash <- pobj$cash + trade$amount
+  pobj$tax_liability <- pobj$tax_liability + gain$tax_liability
   pobj$trades <- rbind(pobj$trades, trade_df)
-  #pobj$holdings <-
+  pobj$holdings <- rbind(pobj$holdings %>%
+                           dplyr::filter(id != id), new_holding) %>%
+    dplyr::arrange(id)
+  pobj$gains <- rbind(pobj$gains, gain)
 
   pobj
 }
-
-
-
