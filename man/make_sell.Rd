@@ -4,7 +4,8 @@
 \alias{make_sell}
 \title{Make Sell Trade Execution function}
 \usage{
-make_sell(pobj, id, date, symbol, quantity, price, desc = "")
+make_sell(pobj, id, date = Sys.Date(), quantity, price, desc = "",
+  trans_cost = 0.05)
 }
 \arguments{
 \item{pobj}{portfolio object}
@@ -13,13 +14,13 @@ make_sell(pobj, id, date, symbol, quantity, price, desc = "")
 
 \item{date}{date of transaction. Date type}
 
-\item{symbol}{symbol ticker. character type}
-
 \item{quantity}{number of shares. numeric type}
 
 \item{price}{price of shares. numeric type}
 
 \item{desc}{trade description. string type}
+
+\item{trans_cost}{transaction cost (dollars per share)}
 }
 \value{
 updated portfolio object
@@ -30,4 +31,11 @@ Function executions a sell trade
 \details{
 add trade amount to cash balance, updates portfolio internal trade
 history and holdings
+}
+\examples{
+library(tidyverse)
+ p1 <- portfolio("new_port", cash=0) \%>\%
+       make_deposit(Sys.Date(), amount = 2000) \%>\%
+       make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) \%>\%
+       make_sell(id = 1, quantity = 5, price = 105)
 }

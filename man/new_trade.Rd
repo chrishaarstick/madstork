@@ -4,7 +4,7 @@
 \alias{new_trade}
 \title{Trade Object Constructor function}
 \usage{
-new_trade(type, date, symbol, price, quantity, amount, desc)
+new_trade(type, date, symbol, quantity, price, amount, desc)
 }
 \arguments{
 \item{type}{trade type. string type.}
@@ -13,9 +13,9 @@ new_trade(type, date, symbol, price, quantity, amount, desc)
 
 \item{symbol}{symbol ticker. character type}
 
-\item{price}{price of shares. numeric type}
-
 \item{quantity}{number of shares. numeric type}
+
+\item{price}{price of shares. numeric type}
 
 \item{amount}{trade dollar amount. numeric type}
 

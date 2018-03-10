@@ -2,7 +2,7 @@
 % Please edit documentation in R/Trades.R
 \name{buy}
 \alias{buy}
-\title{Create Buy Trade Constructor function}
+\title{Create Buy Trade Helper function}
 \usage{
 buy(date, symbol, quantity, price, desc = "")
 }

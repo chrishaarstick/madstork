@@ -4,7 +4,7 @@
 \alias{make_withdraw}
 \title{Make Withdraw function}
 \usage{
-make_withdraw(pobj, date, amount, desc = "")
+make_withdraw(pobj, date = Sys.Date(), amount, desc = "")
 }
 \arguments{
 \item{pobj}{portfolio object}
