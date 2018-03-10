@@ -107,9 +107,9 @@ deposit <- function(date, amount, desc = "") {
 #' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
 #' make_deposit(date=Sys.Date(), amount = 100)
-make_deposit <- function(pobj, date, amount, desc = "") {
+make_deposit <- function(pobj, date = Sys.Date(), amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
-  action <- deposit(date, amount, desc = "")
+  action <- deposit(date, amount, desc)
   action_df <- as.data.frame(action) %>%
     dplyr::mutate(id = max(pobj$activity$id,0)+1)
 
@@ -159,7 +159,7 @@ withdraw <- function(date, amount, desc = "") {
 #' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
 #' make_withdraw(date=Sys.Date(), amount = 50)
-make_withdraw <- function(pobj, date, amount, desc = "") {
+make_withdraw <- function(pobj, date = Sys.Date(), amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
   action <- withdraw(date, amount, desc)
   action_df <- as.data.frame(action) %>%
@@ -167,6 +167,59 @@ make_withdraw <- function(pobj, date, amount, desc = "") {
 
   if (action$amount > pobj$cash) {
     stop("Withdraw amount greater than cash available",
+         .call = FALSE)
+  }
+  pobj$cash <- pobj$cash - action$amount
+  pobj$activity <- rbind(pobj$activity, action_df)
+  pobj
+}
+
+
+#' Create Fee Activity Type Helper
+#'
+#' Create a valid fee object of class Activity
+#'
+#' @inheritParams new_activity
+#' @return valid activity object
+#' @export
+#'
+#' @examples
+#' fee(Sys.Date(), 5, "transaction cost")
+fee <- function(date, amount, desc = ""){
+  validate_activity(new_activity(
+    type = "fee",
+    date = date,
+    amount = amount,
+    desc = desc
+  ))
+}
+
+
+#' Incur Fee function
+#'
+#' incurr fee on a portfolio. fees could be transaction or management fees
+#'
+#' subtracts fee amount from cash balance and adds record to actvity
+#'
+#' @param pobj portfolio object
+#' @inheritParams fee
+#' @importFrom magrittr %>%
+#'
+#' @return updated portfolio object
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' incur_fee(amount = 50)
+incur_fee <- function(pobj, date = Sys.Date(), amount, desc=""){
+  stopifnot(class(pobj) == "portfolio")
+  action <- fee(date, amount, desc)
+  action_df <- as.data.frame(action) %>%
+    dplyr::mutate(id = max(pobj$activity$id,0)+1)
+
+  if (action$amount > pobj$cash) {
+    stop("Fee greater than cash available",
          .call = FALSE)
   }
   pobj$cash <- pobj$cash - action$amount

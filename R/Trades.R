@@ -7,6 +7,9 @@
 
 
 
+
+
+
 # Trade Class -------------------------------------------------------------
 
 #' Trade Object Constructor function
@@ -136,6 +139,7 @@ buy <- function(date,
 #'
 #' @param pobj portfolio object
 #' @inheritParams buy
+#' @param trans_cost transaction cost (dollars per share)
 #' @importFrom magrittr %>%
 #'
 #' @return updated portfolio object
@@ -143,14 +147,15 @@ buy <- function(date,
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 1000) %>%
-#' make_buy(date = Sys.Date(), symbol = "SPY", quantity = 10, price = 100)
+#' portfolio("new_port", cash = 2000) %>%
+#' make_buy(symbol = "SPY", quantity = 10, price = 100)
 make_buy <- function(pobj,
-                     date,
+                     date = Sys.Date(),
                      symbol,
                      quantity,
                      price,
-                     desc = "") {
+                     desc = "",
+                     trans_cost = .05) {
   stopifnot(class(pobj) == "portfolio")
   trade <- buy(date, symbol, quantity, price, desc)
   trade_df <- as.data.frame(trade) %>%
@@ -161,7 +166,17 @@ make_buy <- function(pobj,
          .call = FALSE)
   }
 
-  pobj$cash <- pobj$cash - trade$amount
+
+  pobj <- pobj %>%
+    make_withdraw(date,
+                  amount = trade$amount,
+                  desc = paste("trade_id:", trade_df$id)) %>%
+    incur_fee(
+      date,
+      amount = trade$quantity * trans_cost,
+      desc = paste("trade_id:", trade_df$id)
+    )
+
   pobj$trades <- rbind(pobj$trades, trade_df)
   pobj$holdings <- rbind(
     pobj$holdings,
@@ -218,6 +233,7 @@ sell <- function(date,
 #'
 #' @param pobj portfolio object
 #' @param id trade id of holding to sell
+#' @param trans_cost transaction cost (dollars per share)
 #' @inheritParams sell
 #' @importFrom magrittr %>%
 #'
@@ -227,21 +243,29 @@ sell <- function(date,
 #' @examples
 #' library(tidyverse)
 #'  p1 <- portfolio("new_port", cash=0) %>%
-#'        make_deposit(Sys.Date(), amount = 1000) %>%
+#'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
-#'        make_sell(id = 1, date = Sys.Date(), symbol = "SPY", quantity = 5, price = 105)
+#'        make_sell(id = 1, quantity = 5, price = 105)
 
 make_sell <- function(pobj,
                       id,
-                      date,
-                      symbol,
+                      date = Sys.Date(),
                       quantity,
                       price,
-                      desc = "") {
+                      desc = "",
+                      trans_cost = .05) {
   stopifnot(class(pobj) == "portfolio")
   stopifnot(class(id) == "numeric")
-  trade <- sell(date, symbol, quantity, price, desc)
   holding <- pobj %>% get_holding(id)
+
+
+  if (nrow(holding) == 0) {
+    stop("No holdings returned. Check for correct Trade ID",
+         .call = FALSE)
+  }
+
+  trade <-
+    sell(date, as.character(holding$symbol), quantity, price, desc)
 
   if (trade$quantity > holding$quantity) {
     stop("Trade quantity greater than holding amount. No short trades allowed.",
@@ -257,7 +281,16 @@ make_sell <- function(pobj,
     add_tax_liability() %>%
     dplyr::mutate(id = max(pobj$gains$id, 0) + 1)
 
-  pobj$cash <- pobj$cash + trade$amount
+  pobj <- pobj %>%
+    make_deposit(date,
+                 amount = trade$amount,
+                 desc = paste("trade_id:", trade_df$id)) %>%
+    incur_fee(
+      date,
+      amount = trade$quantity * trans_cost,
+      desc = paste("trade_id:", trade_df$id)
+    )
+
   pobj$tax_liability <- pobj$tax_liability + gain$tax_liability
   pobj$trades <- rbind(pobj$trades, trade_df)
   pobj$holdings <- rbind(pobj$holdings %>%

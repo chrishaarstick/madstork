@@ -4,7 +4,8 @@
 \alias{make_buy}
 \title{Make Buy Trade Execution function}
 \usage{
-make_buy(pobj, date, symbol, quantity, price, desc = "")
+make_buy(pobj, date = Sys.Date(), symbol, quantity, price, desc = "",
+  trans_cost = 0.05)
 }
 \arguments{
 \item{pobj}{portfolio object}
@@ -18,6 +19,8 @@ make_buy(pobj, date, symbol, quantity, price, desc = "")
 \item{price}{price of shares. numeric type}
 
 \item{desc}{trade description. string type}
+
+\item{trans_cost}{transaction cost (dollars per share)}
 }
 \value{
 updated portfolio object
@@ -31,6 +34,6 @@ history and holdings
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 1000) \%>\%
-make_buy(date = Sys.Date(), symbol = "SPY", quantity = 10, price = 100)
+portfolio("new_port", cash = 2000) \%>\%
+make_buy(symbol = "SPY", quantity = 10, price = 100)
 }

@@ -4,7 +4,7 @@
 \alias{make_deposit}
 \title{Make Deposit function}
 \usage{
-make_deposit(pobj, date, amount, desc = "")
+make_deposit(pobj, date = Sys.Date(), amount, desc = "")
 }
 \arguments{
 \item{pobj}{portfolio object}
