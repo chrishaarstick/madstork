@@ -20,6 +20,7 @@ activity relates to any portfolio cash transactions
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
+make_deposit(amount = 100) \%>\%
 get_activity(.)
 }

@@ -1,8 +1,4 @@
 
-
-
-
-
 # Realized Gains Class ----------------------------------------------------
 
 
@@ -117,7 +113,7 @@ gains <- function(sale, holding, gain_threshold = 365) {
 }
 
 
-#'@export
+# Internal function to convert gains to data.frame
 as.data.frame.gains <- function(x) {
   data.frame(
     symbol = x$symbol,
@@ -143,16 +139,15 @@ as.data.frame.gains <- function(x) {
 #'
 #' @return updated gains with tax impact
 #' @export
-add_tax_liability <-
-  function(gain,
-           st_taxrate = 0.30,
-           lt_taxrate = 0.15) {
-    stopifnot(class(gain) == "gains")
+add_tax_liability <- function(gain,
+                              st_taxrate = 0.30,
+                              lt_taxrate = 0.15) {
+  stopifnot(class(gain) == "gains")
 
-    gain %>%
-      as.data.frame() %>%
-      mutate(
-        tax_rate = ifelse(type == "st", st_taxrate, lt_taxrate),
-        tax_liability = tax_rate * gain
-      )
-  }
+  gain %>%
+    as.data.frame() %>%
+    mutate(
+      tax_rate = ifelse(type == "st", st_taxrate, lt_taxrate),
+      tax_liability = tax_rate * gain
+    )
+}

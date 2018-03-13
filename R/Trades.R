@@ -1,15 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
 # Trade Class -------------------------------------------------------------
 
 #' Trade Object Constructor function
@@ -87,7 +76,7 @@ validate_trade <- function(x) {
 }
 
 
-#'@export
+# Internal function to convert trade to data.frame
 as.data.frame.trade <- function(x) {
   data.frame(
     date_added = x$date_added,
@@ -246,7 +235,6 @@ sell <- function(date,
 #'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
 #'        make_sell(id = 1, quantity = 5, price = 105)
-
 make_sell <- function(pobj,
                       id,
                       date = Sys.Date(),
@@ -258,14 +246,13 @@ make_sell <- function(pobj,
   stopifnot(class(id) == "numeric")
   holding <- pobj %>% get_holding(id)
 
-
   if (nrow(holding) == 0) {
     stop("No holdings returned. Check for correct Trade ID",
          .call = FALSE)
   }
 
-  trade <-
-    sell(date, as.character(holding$symbol), quantity, price, desc)
+  symbol <- as.character(holding$symbol)
+  trade <- sell(date, symbol, quantity, price, desc)
 
   if (trade$quantity > holding$quantity) {
     stop("Trade quantity greater than holding amount. No short trades allowed.",
@@ -293,8 +280,8 @@ make_sell <- function(pobj,
 
   pobj$tax_liability <- pobj$tax_liability + gain$tax_liability
   pobj$trades <- rbind(pobj$trades, trade_df)
-  pobj$holdings <- rbind(pobj$holdings %>%
-                           dplyr::filter(id != id), new_holding) %>%
+  pobj$holdings <- rbind(pobj$holdings %>% dplyr::filter(id != id),
+                         new_holding) %>%
     dplyr::arrange(id)
   pobj$gains <- rbind(pobj$gains, gain)
 

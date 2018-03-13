@@ -55,7 +55,7 @@ validate_activity <- function(x) {
 }
 
 
-#'@export
+# Internal function to convert activity to data.frame
 as.data.frame.activity <- function(x) {
   data.frame(
     date_added = x$date_added,

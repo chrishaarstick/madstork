@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 # Portfolio Class ---------------------------------------------------------
 
 
@@ -17,16 +21,19 @@ new_portfolio <- function(name,
   stopifnot(is.character(name))
   stopifnot(is.numeric(cash))
 
-  structure(list(
-    name = name,
-    cash = cash,
-    tax_liability = 0,
-    holdings = data.frame(),
-    activity = data.frame(),
-    trades = data.frame(),
-    gains = data.frame()
-  ),
-  class = "portfolio")
+  structure(
+    list(
+      name = name,
+      cash = cash,
+      tax_liability = 0,
+      holdings = data.frame(),
+      activity = data.frame(),
+      trades = data.frame(),
+      income = data.frame(),
+      gains = data.frame()
+    ),
+    class = "portfolio"
+  )
 }
 
 
@@ -101,11 +108,18 @@ get_cash <- function(pobj) {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
+#' make_deposit(amount = 100) %>%
 #' get_activity(.)
 get_activity <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$activity
+  a <- pobj$activity
+  if (nrow(a) == 0) {
+    a
+  } else{
+    a %>%
+      dplyr::select(id, date_added, transaction_date, type, amount, desc)
+  }
 }
 
 
@@ -127,7 +141,21 @@ get_activity <- function(pobj) {
 #' get_trades(.)
 get_trades <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$trades
+
+  t <- pobj$trades
+  if (nrow(t) == 0) {
+    t
+  } else {
+    t %>% dplyr::select(id,
+                        date_added,
+                        transaction_date,
+                        type,
+                        symbol,
+                        quantity,
+                        price,
+                        amount,
+                        desc)
+  }
 }
 
 
@@ -148,7 +176,19 @@ get_trades <- function(pobj) {
 #' get_holdings(.)
 get_holdings <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$holdings
+  h <- pobj$holdings
+  if (nrow(h) == 0) {
+    h
+  } else{
+    h %>%
+      dplyr::select(id,
+                    date_added,
+                    transaction_date,
+                    symbol,
+                    quantity,
+                    price,
+                    desc)
+  }
 }
 
 
@@ -159,11 +199,23 @@ get_holdings <- function(pobj) {
 #'
 #' @return holding with id == .id
 #' @export
-get_holding <- function(pobj, .id){
+get_holding <- function(pobj, .id) {
   stopifnot(class(pobj) == "portfolio")
   stopifnot(is.numeric(.id))
-  pobj$holdings %>%
-    dplyr::filter_at('id',  any_vars(. == .id))
+  h <- pobj$holdings
+  if (nrow(h) == 0) {
+    NULL
+  } else{
+    h %>%
+      dplyr::filter_at('id',  any_vars(. == .id)) %>%
+      dplyr::select(id,
+                    date_added,
+                    transaction_date,
+                    symbol,
+                    quantity,
+                    price,
+                    desc)
+  }
 }
 
 
@@ -185,7 +237,24 @@ get_holding <- function(pobj, .id){
 #' get_gains(.)
 get_gains <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$gains
+  g <- pobj$gains
+  if (nrow(g) == 0) {
+    g
+  } else {
+    g %>% dplyr::select(
+      id,
+      symbol,
+      quantity,
+      purchase_date,
+      purchase_price,
+      sale_date,
+      sale_price,
+      gain,
+      type,
+      tax_rate,
+      tax_liability
+    )
+  }
 }
 
 
@@ -201,7 +270,39 @@ get_gains <- function(pobj) {
 #' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
 #' get_tax_liability(.)
-get_tax_liability <- function(pobj){
+get_tax_liability <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
   pobj$tax_liability
+}
+
+
+#' Get Portfolio Investment Income
+#'
+#' Returns realized income only. Does not estimate future income payments
+#'
+#' @param pobj portfolio object
+#'
+#' @return Portfolio's past income payments from investments
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_income(.)
+get_income <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  i <- pobj$income
+  if (nrow(i) == 0) {
+    i
+  } else{
+    i %>%
+      dplyr::select(id,
+                    date_added,
+                    transaction_date,
+                    symbol,
+                    quantity,
+                    payment,
+                    amount,
+                    desc)
+  }
 }
