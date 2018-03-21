@@ -11,6 +11,8 @@ get_current_prices(symbols, error_handling = "pass", warning = FALSE)
 
 \item{error_handling}{option to handle errors within foreach loop. options
 are 'pass', 'remove', or 'stop'}
+
+\item{warning}{logical argument to print getSymbol warnings to console}
 }
 \value{
 data.frame with 1 record per symbol with current adjusted close price
@@ -20,8 +22,10 @@ Wrapper function around get_prices function that returns current prices. Adds
 timestamp of date pulled
 }
 \examples{
+\dontrun{
 library(tidyverse)
 library(quantmod)
 symbols <- c("spy", "tlt")
 prices <- symbols \%>\% get_current_prices(.)
+}
 }

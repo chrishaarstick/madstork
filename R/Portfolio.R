@@ -1,10 +1,6 @@
 
 
 
-
-
-
-
 # Portfolio Class ---------------------------------------------------------
 
 
@@ -30,7 +26,9 @@ new_portfolio <- function(name,
       activity = data.frame(),
       trades = data.frame(),
       income = data.frame(),
-      gains = data.frame()
+      gains = data.frame(),
+      market_value = data.frame(),
+      holdings_market_value = data.frame()
     ),
     class = "portfolio"
   )
@@ -121,7 +119,6 @@ get_activity <- function(pobj) {
       dplyr::select(id, date_added, transaction_date, type, amount, desc)
   }
 }
-
 
 
 #' Get Portfolio Trades
@@ -305,4 +302,112 @@ get_income <- function(pobj) {
                     amount,
                     desc)
   }
+}
+
+
+
+
+#' Get Porfolio Holding's Market Value
+#'
+#' Gets current market price and annual dividends for portfolio holdings.
+#' Calculates market value, income and yield
+#'
+#' @param pobj
+#'
+#' @return data.frame with portfolio's holdings market value
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' p1 <- portfolio("new_port", cash=0) %>%
+#'  make_deposit(amount = 5000) %>%
+#'  make_buy(Sys.Date()-365, symbol = "SPY", quantity = 10, price = 200) %>%
+#'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
+#' get_holdings_market_value(p1)
+#' }
+#'
+get_holdings_market_value <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  holdings <- get_holdings(pobj)
+  symbols <- holdings$symbol
+  prices <- get_current_prices(symbols)
+  dividends <- get_annual_dividends(symbols)
+
+  holdings %>%
+    dplyr::select(symbol, quantity, price, date_added) %>%
+    dplyr::rename(cost = price) %>%
+    dplyr::inner_join(prices %>%
+                        select(symbol, price, last_updated)) %>%
+    dplyr::inner_join(dividends %>%
+                        select(symbol, annual_dividend) %>%
+                        rename(dividend = annual_dividend)) %>%
+    dplyr::group_by(last_updated,
+                    symbol,
+                    price,
+                    dividend) %>%
+    dplyr::summarise(quantity = sum(quantity),
+                     cost = weighted.mean(cost, quantity)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      market_value = quantity * price,
+      cost_basis = quantity * cost,
+      unrealized_gain = quantity * (price - cost),
+      annual_income = quantity * dividend,
+      yield = dividend / price
+    ) %>%
+    dplyr::select(
+      last_updated,
+      symbol,
+      quantity,
+      price,
+      market_value,
+      cost_basis,
+      unrealized_gain,
+      dividend,
+      annual_income,
+      yield
+    ) %>%
+    as.data.frame()
+}
+
+
+#' Update Porfolio Market Value
+#'
+#' Function to update porfolio and holding's market value
+#'
+#' Function appends portfolio's market value record for historical analysis and
+#' overwrites the holdings market value
+#'
+#' @param pobj portfolio object
+#'
+#' @return Updated Porfolio object with new market value
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' p1 <- portfolio("new_port", cash=0) %>%
+#'  make_deposit(amount = 5000) %>%
+#'  make_buy(Sys.Date()-365, symbol = "SPY", quantity = 10, price = 200) %>%
+#'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
+#' update_holdings_market_value(p1)
+#' }
+update_market_value <- function(pobj){
+  stopifnot(class(pobj) == "portfolio")
+
+  holdings <- get_holdings(pobj)
+  holdings_market_value <- get_holdings_market_value(pobj)
+
+  current_market_value <- data.frame(
+    last_updated = Sys.time(),
+    cash = as.numeric(get_cash(pobj)),
+    investments_value = sum(holdings_market_value$market_value),
+    investments_annual_income = sum(holdings_market_value$annual_income),
+    loans = as.numeric(0),
+    tax_liability = as.numeric(get_tax_liability(pobj))) %>%
+    dplyr::mutate(net_value = cash + investments_value - loans - tax_liability)
+
+  pobj$holdings_market_value <- holdings_market_value
+  pobj$market_value <- rbind(pobj$market_value, current_market_value)
+
+  pobj
 }
