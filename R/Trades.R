@@ -300,6 +300,7 @@ make_sell <- function(pobj,
 #' @export
 #'
 #' @examples
+#' library(tidyverse)
 #' transfer(date = Sys.Date(), symbol = "SPY", quantity = 10, price = 100, type="out")
 transfer <- function(date,
                      symbol,
@@ -332,6 +333,7 @@ transfer <- function(date,
 #' @export
 #'
 #' @examples
+#' library(tidyverse)
 #'  p1 <- portfolio("new_port", cash=0) %>%
 #'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
@@ -374,6 +376,7 @@ transfer_out <- function(pobj,
 #' @export
 #'
 #' @examples
+#' library(tidyverse)
 #'  p1 <- portfolio("new_port", cash=0) %>%
 #'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        transfer_in(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100)
