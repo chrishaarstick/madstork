@@ -226,3 +226,4 @@ incur_fee <- function(pobj, date = Sys.Date(), amount, desc=""){
   pobj$activity <- rbind(pobj$activity, action_df)
   pobj
 }
+

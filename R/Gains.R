@@ -116,14 +116,14 @@ gains <- function(sale, holding, gain_threshold = 365) {
 # Internal function to convert gains to data.frame
 as.data.frame.gains <- function(x) {
   data.frame(
-    symbol = x$symbol,
-    quantity = x$quantity,
-    purchase_date = x$purchase_date,
-    purchase_price = x$purchase_price,
-    sale_date = x$sale_date,
-    sale_price = x$sale_price,
-    gain = x$gain,
-    type = x$type
+    symbol = as.character(x$symbol),
+    quantity = as.numeric(x$quantity),
+    purchase_date = as.Date(x$purchase_date),
+    purchase_price = as.numeric(x$purchase_price),
+    sale_date = as.Date(x$sale_date),
+    sale_price = as.numeric(x$sale_price),
+    gain = as.numeric(x$gain),
+    type = as.character(x$type)
   )
 }
 

@@ -65,8 +65,8 @@ validate_trade <- function(x) {
     stop("negative price not valid",
          .call = F)
   }
-  if (!x$type %in% c("buy", "sell")) {
-    stop("trade type not supported. only buy or sell types allowed",
+  if (!x$type %in% c("buy", "sell", "transfer_in", "transfer_out")) {
+    stop("trade type not supported. only buy, sell, transfer_in and transfer_out types allowed",
          .call = F)
   }
   if (nchar(x$symbol) > 4) {
@@ -79,14 +79,14 @@ validate_trade <- function(x) {
 # Internal function to convert trade to data.frame
 as.data.frame.trade <- function(x) {
   data.frame(
-    date_added = x$date_added,
-    transaction_date = x$transaction_date,
-    type = x$type,
-    symbol = x$symbol,
-    quantity = x$quantity,
-    price = x$price,
-    amount = x$amount,
-    desc = x$desc
+    date_added = as.Date(x$date_added),
+    transaction_date = as.Date(x$transaction_date),
+    type = as.character(x$type),
+    symbol = as.character(x$symbol),
+    quantity = as.numeric(x$quantity),
+    price = as.numeric(x$price),
+    amount = as.numeric(x$amount),
+    desc = as.character(x$desc)
   )
 }
 
@@ -245,6 +245,7 @@ make_sell <- function(pobj,
   stopifnot(class(pobj) == "portfolio")
   stopifnot(class(id) == "numeric")
   holding <- pobj %>% get_holding(id)
+  Id <- id
 
   if (nrow(holding) == 0) {
     stop("No holdings returned. Check for correct Trade ID",
@@ -280,10 +281,127 @@ make_sell <- function(pobj,
 
   pobj$tax_liability <- pobj$tax_liability + gain$tax_liability
   pobj$trades <- rbind(pobj$trades, trade_df)
-  pobj$holdings <- rbind(pobj$holdings %>% dplyr::filter(id != id),
+  pobj$holdings <- rbind(pobj$holdings %>%
+                           dplyr::filter(id != Id),
                          new_holding) %>%
     dplyr::arrange(id)
   pobj$gains <- rbind(pobj$gains, gain)
 
   pobj
 }
+
+
+#' Create Transfer Trade Helper
+#'
+#' Create a valid transfer object of class Trade
+#'
+#' @inheritParams new_trade
+#' @return valid trade object
+#' @export
+#'
+#' @examples
+#' transfer(date = Sys.Date(), symbol = "SPY", quantity = 10, price = 100, type="out")
+transfer <- function(date,
+                     symbol,
+                     quantity,
+                     price,
+                     type = "",
+                     desc = "") {
+  validate_trade(
+    new_trade(
+      type = paste("transfer", type, sep="_"),
+      date,
+      symbol,
+      quantity,
+      price,
+      amount = price * quantity,
+      desc
+    )
+  )
+}
+
+
+
+#' Transfer Out Holdings function
+#'
+#' Function removes holding from portfolio without a cash transaction
+#'
+#' @inheritParams make_sell
+#'
+#' @return updated portfolio object
+#' @export
+#'
+#' @examples
+#'  p1 <- portfolio("new_port", cash=0) %>%
+#'        make_deposit(Sys.Date(), amount = 2000) %>%
+#'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
+#'        transfer_out(id = 1)
+transfer_out <- function(pobj,
+                         id,
+                         date = Sys.Date(),
+                         desc = "") {
+  stopifnot(class(pobj) == "portfolio")
+  stopifnot(class(id) == "numeric")
+  holding <- pobj %>% get_holding(id)
+  Id <- id
+
+  if (nrow(holding) == 0) {
+    stop("No holdings returned. Check for correct Trade ID",
+         .call = FALSE)
+  }
+  symbol <- as.character(holding$symbol)
+  trade <- transfer(date, symbol, holding$quantity, holding$price, type = "out", desc)
+  trade_df <- as.data.frame(trade) %>%
+    dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
+
+  pobj$trades <- rbind(pobj$trades, trade_df)
+  pobj$holdings <- pobj$holdings %>%
+    dplyr::filter(id != Id) %>%
+    dplyr::arrange(id)
+
+  pobj
+}
+
+
+
+#' Transfer In Holdings function
+#'
+#' Function adds holding from portfolio without a cash transaction
+#'
+#' @inheritParams make_buy
+#'
+#' @return updated portfolio object
+#' @export
+#'
+#' @examples
+#'  p1 <- portfolio("new_port", cash=0) %>%
+#'        make_deposit(Sys.Date(), amount = 2000) %>%
+#'        transfer_in(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100)
+transfer_in <- function(pobj,
+                        date = Sys.Date(),
+                        symbol,
+                        quantity,
+                        price,
+                        desc = "") {
+  stopifnot(class(pobj) == "portfolio")
+  trade <-transfer(date, symbol, quantity, price, type = "in", desc)
+  trade_df <- as.data.frame(trade) %>%
+    dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
+
+  pobj$trades <- rbind(pobj$trades, trade_df)
+  pobj$holdings <- rbind(
+    pobj$holdings,
+    trade_df %>%
+      dplyr::select(
+        id,
+        date_added,
+        transaction_date,
+        symbol,
+        quantity,
+        price,
+        desc
+      )
+  )
+  pobj
+}
+

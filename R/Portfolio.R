@@ -316,6 +316,7 @@ get_income <- function(pobj) {
 #'
 #' @return data.frame with portfolio's holdings market value
 #' @export
+#' @importFrom stats weighted.mean
 #'
 #' @examples
 #' \dontrun{
@@ -337,10 +338,12 @@ get_holdings_market_value <- function(pobj) {
     dplyr::select(symbol, quantity, price, date_added) %>%
     dplyr::rename(cost = price) %>%
     dplyr::inner_join(prices %>%
-                        select(symbol, price, last_updated)) %>%
+                        select(symbol, price, last_updated),
+                      by = "symbol") %>%
     dplyr::inner_join(dividends %>%
                         select(symbol, annual_dividend) %>%
-                        rename(dividend = annual_dividend)) %>%
+                        rename(dividend = annual_dividend),
+                      by = "symbol") %>%
     dplyr::group_by(last_updated,
                     symbol,
                     price,
@@ -353,7 +356,9 @@ get_holdings_market_value <- function(pobj) {
       cost_basis = quantity * cost,
       unrealized_gain = quantity * (price - cost),
       annual_income = quantity * dividend,
-      yield = dividend / price
+      yield = dividend / price,
+      investments_share = market_value/sum(market_value),
+      portfolio_share = market_value/(sum(market_value)+get_cash(pobj))
     ) %>%
     dplyr::select(
       last_updated,
@@ -365,7 +370,9 @@ get_holdings_market_value <- function(pobj) {
       unrealized_gain,
       dividend,
       annual_income,
-      yield
+      yield,
+      investments_share,
+      portfolio_share
     ) %>%
     as.data.frame()
 }
