@@ -22,6 +22,7 @@ updated portfolio object
 Function removes holding from portfolio without a cash transaction
 }
 \examples{
+library(tidyverse)
  p1 <- portfolio("new_port", cash=0) \%>\%
        make_deposit(Sys.Date(), amount = 2000) \%>\%
        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) \%>\%

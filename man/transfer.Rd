@@ -26,5 +26,6 @@ valid trade object
 Create a valid transfer object of class Trade
 }
 \examples{
+library(tidyverse)
 transfer(date = Sys.Date(), symbol = "SPY", quantity = 10, price = 100, type="out")
 }
