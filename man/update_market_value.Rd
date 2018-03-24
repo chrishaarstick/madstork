@@ -25,6 +25,6 @@ p1 <- portfolio("new_port", cash=0) \%>\%
  make_deposit(amount = 5000) \%>\%
  make_buy(Sys.Date()-365, symbol = "SPY", quantity = 10, price = 200) \%>\%
  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
-update_holdings_market_value(p1)
+ update_market_value(p1)
 }
 }
