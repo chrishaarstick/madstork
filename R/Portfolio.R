@@ -17,16 +17,21 @@ new_portfolio <- function(name,
   stopifnot(is.character(name))
   stopifnot(is.numeric(cash))
 
-  structure(list(
-    name = name,
-    cash = cash,
-    tax_liability = 0,
-    holdings = data.frame(),
-    activity = data.frame(),
-    trades = data.frame(),
-    gains = data.frame()
-  ),
-  class = "portfolio")
+  structure(
+    list(
+      name = name,
+      cash = cash,
+      tax_liability = 0,
+      holdings = data.frame(),
+      activity = data.frame(),
+      trades = data.frame(),
+      income = data.frame(),
+      gains = data.frame(),
+      market_value = data.frame(),
+      holdings_market_value = data.frame()
+    ),
+    class = "portfolio"
+  )
 }
 
 
@@ -101,13 +106,19 @@ get_cash <- function(pobj) {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
+#' make_deposit(amount = 100) %>%
 #' get_activity(.)
 get_activity <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$activity
+  a <- pobj$activity
+  if (nrow(a) == 0) {
+    a
+  } else{
+    a %>%
+      dplyr::select(id, date_added, transaction_date, type, amount, desc)
+  }
 }
-
 
 
 #' Get Portfolio Trades
@@ -127,7 +138,21 @@ get_activity <- function(pobj) {
 #' get_trades(.)
 get_trades <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$trades
+
+  t <- pobj$trades
+  if (nrow(t) == 0) {
+    t
+  } else {
+    t %>% dplyr::select(id,
+                        date_added,
+                        transaction_date,
+                        type,
+                        symbol,
+                        quantity,
+                        price,
+                        amount,
+                        desc)
+  }
 }
 
 
@@ -148,7 +173,19 @@ get_trades <- function(pobj) {
 #' get_holdings(.)
 get_holdings <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$holdings
+  h <- pobj$holdings
+  if (nrow(h) == 0) {
+    h
+  } else{
+    h %>%
+      dplyr::select(id,
+                    date_added,
+                    transaction_date,
+                    symbol,
+                    quantity,
+                    price,
+                    desc)
+  }
 }
 
 
@@ -159,11 +196,23 @@ get_holdings <- function(pobj) {
 #'
 #' @return holding with id == .id
 #' @export
-get_holding <- function(pobj, .id){
+get_holding <- function(pobj, .id) {
   stopifnot(class(pobj) == "portfolio")
   stopifnot(is.numeric(.id))
-  pobj$holdings %>%
-    dplyr::filter_at('id',  any_vars(. == .id))
+  h <- pobj$holdings
+  if (nrow(h) == 0) {
+    NULL
+  } else{
+    h %>%
+      dplyr::filter_at('id',  any_vars(. == .id)) %>%
+      dplyr::select(id,
+                    date_added,
+                    transaction_date,
+                    symbol,
+                    quantity,
+                    price,
+                    desc)
+  }
 }
 
 
@@ -185,7 +234,24 @@ get_holding <- function(pobj, .id){
 #' get_gains(.)
 get_gains <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
-  pobj$gains
+  g <- pobj$gains
+  if (nrow(g) == 0) {
+    g
+  } else {
+    g %>% dplyr::select(
+      id,
+      symbol,
+      quantity,
+      purchase_date,
+      purchase_price,
+      sale_date,
+      sale_price,
+      gain,
+      type,
+      tax_rate,
+      tax_liability
+    )
+  }
 }
 
 
@@ -201,7 +267,224 @@ get_gains <- function(pobj) {
 #' library(tidyverse)
 #' portfolio("new_port", cash = 100) %>%
 #' get_tax_liability(.)
-get_tax_liability <- function(pobj){
+get_tax_liability <- function(pobj) {
   stopifnot(class(pobj) == "portfolio")
   pobj$tax_liability
+}
+
+
+#' Settle Portfolio Tax Liability
+#'
+#' Function to settle the tax liabilty. Option to make cash withdraw and add to
+#' portfolio activity
+#'
+#' @param pobj portfolio object
+#' @param date date of transaction. default is current date
+#' @param amount amount of tax settlement
+#' @param withdraw logical option to make a cash withdraw from portfolio
+#'
+#' @return updated portfolio object
+#' @export
+#'
+#' @examples
+#'library(tidyverse)
+#'portfolio("new_port", cash=0) %>%
+#'  make_deposit(amount = 2000) %>%
+#'  make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
+#'  make_sell(id = 1, quantity = 5, price = 105) %>%
+#'  settle_tax_liability(amount = 7.5, withdraw = TRUE)
+settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FALSE){
+  stopifnot(class(pobj) == "portfolio")
+
+  if(withdraw){
+    pobj <- make_withdraw(pobj, date, amount, desc = "Tax Payment")
+  }
+  pobj$tax_liability <- pobj$tax_liability - amount
+
+
+  pobj
+}
+
+
+
+#' Get Portfolio Investment Income
+#'
+#' Returns realized income only. Does not estimate future income payments
+#'
+#' @param pobj portfolio object
+#'
+#' @return Portfolio's past income payments from investments
+#' @export
+#'
+#' @examples
+#' library(tidyverse)
+#' portfolio("new_port", cash = 100) %>%
+#' get_income(.)
+get_income <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  i <- pobj$income
+  if (nrow(i) == 0) {
+    i
+  } else{
+    i %>%
+      dplyr::select(id,
+                    date_added,
+                    transaction_date,
+                    symbol,
+                    quantity,
+                    payment,
+                    amount,
+                    desc)
+  }
+}
+
+
+
+
+#' Updated Porfolio Holding's Market Value
+#'
+#' Updateds current market price and annual dividends for portfolio holdings.
+#' Calculates market value, income and yield
+#'
+#' @param pobj
+#'
+#' @return data.frame with portfolio's holdings market value
+#' @export
+#' @importFrom stats weighted.mean
+#'
+#' @examples
+#' \dontrun{
+#' p1 <- portfolio("new_port", cash=0) %>%
+#'  make_deposit(amount = 5000) %>%
+#'  make_buy(Sys.Date()-365, symbol = "SPY", quantity = 10, price = 200) %>%
+#'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
+#'  update_holdings_market_value(p1)
+#' }
+#'
+update_holdings_market_value <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+  holdings <- get_holdings(pobj)
+  symbols <- holdings$symbol
+  prices <- get_current_prices(symbols)
+  dividends <- get_annual_dividends(symbols)
+
+  holdings %>%
+    dplyr::select(symbol, quantity, price, date_added) %>%
+    dplyr::rename(cost = price) %>%
+    dplyr::inner_join(prices %>%
+                        select(symbol, price, last_updated),
+                      by = "symbol") %>%
+    dplyr::inner_join(dividends %>%
+                        select(symbol, annual_dividend) %>%
+                        rename(dividend = annual_dividend),
+                      by = "symbol") %>%
+    dplyr::group_by(last_updated,
+                    symbol,
+                    price,
+                    dividend) %>%
+    dplyr::summarise(quantity = sum(quantity),
+                     cost = weighted.mean(cost, quantity)) %>%
+    dplyr::ungroup() %>%
+    dplyr::mutate(
+      market_value = quantity * price,
+      cost_basis = quantity * cost,
+      unrealized_gain = quantity * (price - cost),
+      annual_income = quantity * dividend,
+      yield = dividend / price,
+      investments_share = market_value/sum(market_value),
+      portfolio_share = market_value/(sum(market_value)+get_cash(pobj))
+    ) %>%
+    dplyr::select(
+      last_updated,
+      symbol,
+      quantity,
+      price,
+      market_value,
+      cost_basis,
+      unrealized_gain,
+      dividend,
+      annual_income,
+      yield,
+      investments_share,
+      portfolio_share
+    ) %>%
+    as.data.frame()
+}
+
+
+#' Update Porfolio Market Value
+#'
+#' Function to update porfolio and holding's market value
+#'
+#' Function appends portfolio's market value record for historical analysis and
+#' overwrites the holdings market value
+#'
+#' @param pobj portfolio object
+#'
+#' @return Updated Porfolio object with new market value
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' p1 <- portfolio("new_port", cash=0) %>%
+#'  make_deposit(amount = 5000) %>%
+#'  make_buy(Sys.Date()-365, symbol = "SPY", quantity = 10, price = 200) %>%
+#'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
+#'  update_market_value(p1)
+#' }
+update_market_value <- function(pobj) {
+  stopifnot(class(pobj) == "portfolio")
+
+  holdings <- get_holdings(pobj)
+  holdings_market_value <- update_holdings_market_value(pobj)
+
+  current_market_value <- data.frame(
+    last_updated = Sys.time(),
+    cash = as.numeric(get_cash(pobj)),
+    investments_value = sum(holdings_market_value$market_value),
+    investments_annual_income = sum(holdings_market_value$annual_income),
+    loans = as.numeric(0),
+    tax_liability = as.numeric(get_tax_liability(pobj))
+  ) %>%
+    dplyr::mutate(net_value = cash + investments_value - loans - tax_liability)
+
+  pobj$holdings_market_value <- holdings_market_value
+  pobj$market_value <-
+    rbind(pobj$market_value, current_market_value)
+
+  pobj
+}
+
+
+#'@rdname print
+print.portfolio <- function(pobj){
+  stopifnot(class(pobj) == "portfolio")
+
+  cat("Portfolio", pobj$name, "\n")
+  cat("---------------------------", "\n")
+
+  if(nrow(pobj$market_value)>0){
+    mv <- filter(pobj$market_value, last_updated == max(last_updated))
+    cat("Market Value:  ", "\n")
+    cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
+    cat("* Investments ", scales::dollar(mv$investments_value), "\n")
+    cat("* Cash        ", scales::dollar(mv$cash), "\n")
+    cat("* Annual Income", scales::dollar(mv$investments_annual_income),"\n\n")
+  }
+
+  if(nrow(pobj$holdings_market_value) > 0){
+    cat("Top 5 Holdings by Market Value:", "\n")
+    pobj$holdings_market_value %>%
+      dplyr::top_n(5, market_value) %>%
+      dplyr::arrange(-market_value) %>%
+      dplyr::select(symbol, market_value, cost_basis, unrealized_gain) %>%
+      print()
+    cat("\n")
+  }
+
+  cat("Recent Activity:", '\n')
+  get_activity(pobj) %>%
+    dplyr::top_n(5, id) %>%
+    dplyr::arrange(-id) %>%
+    print()
 }
