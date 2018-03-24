@@ -287,6 +287,7 @@ get_tax_liability <- function(pobj) {
 #' @export
 #'
 #' @examples
+#'library(tidyverse)
 #'portfolio("new_port", cash=0) %>%
 #'  make_deposit(amount = 2000) %>%
 #'  make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
