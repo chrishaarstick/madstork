@@ -27,7 +27,6 @@ madstork_cols <- function(...) {
 
 madstork_palettes <- list(
   `main`  = madstork_cols("orange", "dark grey", "dark blue", "light grey"),
-
   `grey`  = madstork_cols("dark grey", "light grey")
 )
 
@@ -37,13 +36,12 @@ madstork_palettes <- list(
 #' @param palette Character name of palette in madstork_palettes
 #' @param reverse Boolean indicating whether the palette should be reversed
 #' @param ... Additional arguments to pass to colorRampPalette()
-#'
 madstork_pal <- function(palette = "main", reverse = FALSE, ...) {
   pal <- madstork_palettes[[palette]]
 
   if (reverse) pal <- rev(pal)
 
-  colorRampPalette(pal, ...)
+  grDevices::colorRampPalette(pal, ...)
 }
 
 

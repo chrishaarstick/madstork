@@ -116,7 +116,14 @@ get_activity <- function(pobj) {
     a
   } else{
     a %>%
-      dplyr::select(id, date_added, transaction_date, type, amount, desc)
+      dplyr::select_at(c(
+        "id",
+        "date_added",
+        "transaction_date",
+        "type",
+        "amount",
+        "desc"
+      ))
   }
 }
 
@@ -143,15 +150,19 @@ get_trades <- function(pobj) {
   if (nrow(t) == 0) {
     t
   } else {
-    t %>% dplyr::select(id,
-                        date_added,
-                        transaction_date,
-                        type,
-                        symbol,
-                        quantity,
-                        price,
-                        amount,
-                        desc)
+    t %>% dplyr::select_at(
+      c(
+        "id",
+        "date_added",
+        "transaction_date",
+        "type",
+        "symbol",
+        "quantity",
+        "price",
+        "amount",
+        'desc'
+      )
+    )
   }
 }
 
@@ -178,13 +189,15 @@ get_holdings <- function(pobj) {
     h
   } else{
     h %>%
-      dplyr::select(id,
-                    date_added,
-                    transaction_date,
-                    symbol,
-                    quantity,
-                    price,
-                    desc)
+      dplyr::select_at(c(
+        "id",
+        "date_added",
+        "transaction_date",
+        "symbol",
+        "quantity",
+        "price",
+        "desc"
+      ))
   }
 }
 
@@ -205,13 +218,15 @@ get_holding <- function(pobj, .id) {
   } else{
     h %>%
       dplyr::filter_at('id',  any_vars(. == .id)) %>%
-      dplyr::select(id,
-                    date_added,
-                    transaction_date,
-                    symbol,
-                    quantity,
-                    price,
-                    desc)
+      dplyr::select_at(c(
+        "id",
+        "date_added",
+        "transaction_date",
+        "symbol",
+        "quantity",
+        "price",
+        "desc"
+      ))
   }
 }
 
@@ -238,18 +253,20 @@ get_gains <- function(pobj) {
   if (nrow(g) == 0) {
     g
   } else {
-    g %>% dplyr::select(
-      id,
-      symbol,
-      quantity,
-      purchase_date,
-      purchase_price,
-      sale_date,
-      sale_price,
-      gain,
-      type,
-      tax_rate,
-      tax_liability
+    g %>% dplyr::select_at(
+      c(
+        "id",
+        "symbol",
+        "quantity",
+        "purchase_date",
+        "purchase_price",
+        "sale_date",
+        "sale_price",
+        "gain",
+        "type",
+        "tax_rate",
+        'tax_liability'
+      )
     )
   }
 }
@@ -327,14 +344,18 @@ get_income <- function(pobj) {
     i
   } else{
     i %>%
-      dplyr::select(id,
-                    date_added,
-                    transaction_date,
-                    symbol,
-                    quantity,
-                    payment,
-                    amount,
-                    desc)
+      dplyr::select_at(
+        c(
+          "id",
+          "date_added",
+          "transaction_date",
+          "symbol",
+          "quantity",
+          "payment",
+          "amount",
+          "desc"
+        )
+      )
   }
 }
 
@@ -346,7 +367,7 @@ get_income <- function(pobj) {
 #' Updateds current market price and annual dividends for portfolio holdings.
 #' Calculates market value, income and yield
 #'
-#' @param pobj
+#' @param pobj portfolio object
 #'
 #' @return data.frame with portfolio's holdings market value
 #' @export
@@ -394,23 +415,22 @@ update_holdings_market_value <- function(pobj) {
       investments_share = market_value/sum(market_value),
       portfolio_share = market_value/(sum(market_value)+get_cash(pobj))
     ) %>%
-    dplyr::select(
-      last_updated,
-      symbol,
-      quantity,
-      price,
-      market_value,
-      cost_basis,
-      unrealized_gain,
-      dividend,
-      annual_income,
-      yield,
-      investments_share,
-      portfolio_share
-    ) %>%
+    dplyr::select_at(c(
+      "last_updated",
+      "symbol",
+      "quantity",
+      "price",
+      "market_value",
+      "cost_basis",
+      "unrealized_gain",
+      "dividend",
+      "annual_income",
+      'yield',
+      "investments_share",
+      "portfolio_share"
+    )) %>%
     as.data.frame()
 }
-
 
 #' Update Porfolio Market Value
 #'
@@ -456,6 +476,34 @@ update_market_value <- function(pobj) {
 }
 
 
+
+#' Get Portfolio Market Value
+#'
+#' @param pobj portfolio object
+#'
+#' @return data.frame with portfolio's market value
+#' @export
+get_market_value <- function(pobj){
+  stopifnot(class(pobj) == "portfolio")
+
+  pobj$market_value
+}
+
+
+#' Get Portfolio's Holdings Market Value
+#'
+#' @param pobj portfolio object
+#'
+#' @return data.frame with portfolio holdings market value
+#' @export
+get_holdings_market_value <- function(pobj){
+  stopifnot(class(pobj) == "portfolio")
+
+  pobj$holdings_market_value
+}
+
+
+
 #'@rdname print
 print.portfolio <- function(pobj){
   stopifnot(class(pobj) == "portfolio")
@@ -487,4 +535,47 @@ print.portfolio <- function(pobj){
     dplyr::top_n(5, id) %>%
     dplyr::arrange(-id) %>%
     print()
+}
+
+
+#' Save Portfolio Function
+#'
+#' Function saves the portfolio as .RData file in specified directory. Function
+#' uses portfolio name for file name
+#'
+#' @param pobj portfolio object
+#' @param dir directory to save portfolio
+#' @param overwrite logical object to overwrite existing portfolio if exists.
+#'   default to TRUE
+#'
+#' @export
+save_portfolio <- function(pobj, dir='./', overwrite = TRUE){
+  stopifnot(class(pobj) == "portfolio")
+
+  path <- paste0(dir, pobj$name, ".RData")
+  if(overwrite){
+    save(pobj, file = path)
+  }else if (! file.exists(path)){
+    save(pobj, file = path)
+  }else{
+    message("portfolio already exists - portfolio will not be saved")
+  }
+}
+
+
+#' Load Existing Portfolio
+#'
+#' Function to load into memory saved portfolio object in .RData file
+#'
+#' @param path valid file path to porfolio object. should be .RData file type
+#'
+#' @return portfolio object
+#' @export
+load_portfolio <- function(path){
+  stopifnot(file.exists(path))
+  port_env <- new.env()
+  load(path, envir = port_env)
+  stopifnot("pobj" %in% ls(port_env))
+  stopifnot(class(port_env$pobj) == "portfolio")
+  return(port_env$pobj)
 }

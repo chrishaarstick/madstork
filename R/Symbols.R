@@ -127,7 +127,7 @@ get_current_prices <- function(symbols,
     dplyr::filter(date == max(date)) %>%
     dplyr::ungroup() %>%
     dplyr::mutate(last_updated = Sys.time()) %>%
-    dplyr::select(last_updated, symbol, price)
+    dplyr::select_at(c("last_updated", "symbol", "price"))
 }
 
 
@@ -220,12 +220,14 @@ get_annual_dividends <- function(symbols,
       last_payment = max(date)
     ) %>%
     dplyr::mutate(last_updated = Sys.time()) %>%
-    dplyr::select(
-      last_updated,
-      symbol,
-      annual_dividend,
-      avg_dividend,
-      annual_payments,
-      last_payment
+    dplyr::select_at(
+      c(
+        "last_updated",
+        "symbol",
+        "annual_dividend",
+        "avg_dividend",
+        "annual_payments",
+        "last_payment"
+      )
     )
 }

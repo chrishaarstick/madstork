@@ -7,7 +7,7 @@
 update_holdings_market_value(pobj)
 }
 \arguments{
-\item{pobj}{}
+\item{pobj}{portfolio object}
 }
 \value{
 data.frame with portfolio's holdings market value

@@ -146,8 +146,6 @@ add_tax_liability <- function(gain,
 
   gain %>%
     as.data.frame() %>%
-    mutate(
-      tax_rate = ifelse(type == "st", st_taxrate, lt_taxrate),
-      tax_liability = tax_rate * gain
-    )
+    dplyr::mutate(tax_rate = ifelse(type == "st", st_taxrate, lt_taxrate)) %>%
+    dplyr::mutate(tax_liability = tax_rate * gain)
 }

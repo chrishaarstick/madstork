@@ -13,6 +13,10 @@ Imports:
   lubridate,
   quantmod,
   zoo,
-  foreach
-Suggests: testthat
+  foreach,
+  ggplot2,
+  scales
+Suggests: 
+  testthat,
+  docopt
 RoxygenNote: 6.0.1
