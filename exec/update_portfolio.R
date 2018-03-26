@@ -15,8 +15,8 @@ doc <- "Usage: portfolio_update.R [options] [-h]
 -rdir --reportdir REPORTDIR directory to save report in [default: `./`]
 "
 
-# Pre-requistes - requires docopt & config packages installed
-for(p in c('docopt')){
+# Load required packages
+for(p in c('docopt', 'madstork', 'tidyverse', 'quantmod')){
   if(p %in% rownames(installed.packages())){
     suppressMessages(library(p, character.only = T))
   }else{
@@ -36,7 +36,7 @@ port <- load_portfolio(path)
 port <- update_market_value(port)
 
 # Create Report
-report(port)
+#report(port)
 
 # Save Updated Port
 save_portfolio(port, opt$port, overwrite = TRUE)

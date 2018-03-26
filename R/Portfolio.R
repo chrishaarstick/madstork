@@ -504,6 +504,7 @@ get_holdings_market_value <- function(pobj){
 
 
 
+#'@export
 #'@rdname print
 print.portfolio <- function(pobj){
   stopifnot(class(pobj) == "portfolio")

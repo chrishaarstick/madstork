@@ -55,7 +55,7 @@ get_ochlav <- function(symbols,
     symbol$date <- rownames(symbol)
 
     symbol  %>%
-      dplyr::rename_all(funs(tolower(gsub(
+      dplyr::rename_all(dplyr::funs(tolower(gsub(
         paste0(sym, "."), "", .
       )))) %>%
       dplyr::rename(adj_close = adjusted) %>%
@@ -170,13 +170,13 @@ get_dividends <- function(symbols,
 
     div %>%
       as.data.frame() %>%
-      dplyr::rename_all(funs(tolower(gsub(
+      dplyr::rename_all(dplyr::funs(tolower(gsub(
         paste0(sym, "."), "", .
       )))) %>%
       dplyr::rename(dividend = div) %>%
       dplyr::mutate(symbol = as.character(sym),
                     date = as.Date(index(div))) %>%
-      dplyr::select(date, symbol, dividend)
+      dplyr::select_at(c("date", "symbol", "dividend"))
   }
 }
 
