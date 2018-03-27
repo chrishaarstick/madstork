@@ -168,15 +168,20 @@ get_dividends <- function(symbols,
                         from = start_date,
                         to = end_date)
 
-    div %>%
-      as.data.frame() %>%
-      dplyr::rename_all(dplyr::funs(tolower(gsub(
-        paste0(sym, "."), "", .
-      )))) %>%
-      dplyr::rename(dividend = div) %>%
-      dplyr::mutate(symbol = as.character(sym),
-                    date = as.Date(index(div))) %>%
-      dplyr::select_at(c("date", "symbol", "dividend"))
+    if(nrow(div) == 0){
+      data.frame(date = end_date,
+                 symbol = sym,
+               dividend = 0)
+    }else{
+     data.frame(div) %>%
+        dplyr::rename_all(dplyr::funs(tolower(gsub(
+          paste0(sym, "."), "", .
+        )))) %>%
+        dplyr::rename(dividend = div) %>%
+        dplyr::mutate(symbol = as.character(sym),
+                      date = as.Date(index(div))) %>%
+        dplyr::select_at(c("date", "symbol", "dividend"))
+    }
   }
 }
 
