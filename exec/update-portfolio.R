@@ -11,7 +11,7 @@
 
 doc <- "Usage: portfolio_update.R [options] [-h]
 
--p --port PORT  Name/path of Portfolio object to load and update  [default: NA]
+-p --port PORT  path of Portfolio object to load and update  [default: NA]
 -rdir --reportdir REPORTDIR directory to save report in [default: `./`]
 "
 
@@ -28,9 +28,11 @@ opt <- docopt::docopt(doc)
 
 # Execute logic -----------------------------------------------------------
 
+options("getSymbols.warning4.0"=FALSE)
+options("getSymbols.yahoo.warning"=FALSE)
+
 # Load Portfolio
-path <- paste0(opt$port, ".RData")
-port <- load_portfolio(path)
+port <- load_portfolio(opt$port)
 
 # Update Market Value
 port <- update_market_value(port)

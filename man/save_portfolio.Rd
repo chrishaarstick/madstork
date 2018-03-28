@@ -4,17 +4,16 @@
 \alias{save_portfolio}
 \title{Save Portfolio Function}
 \usage{
-save_portfolio(pobj, dir = "./", overwrite = TRUE)
+save_portfolio(pobj, path, overwrite = TRUE)
 }
 \arguments{
 \item{pobj}{portfolio object}
 
-\item{dir}{directory to save portfolio}
+\item{path}{file path to save portfolio}
 
 \item{overwrite}{logical object to overwrite existing portfolio if exists.
 default to TRUE}
 }
 \description{
-Function saves the portfolio as .RData file in specified directory. Function
-uses portfolio name for file name
+Function saves the portfolio to file. RData file extension required.
 }

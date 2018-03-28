@@ -541,19 +541,18 @@ print.portfolio <- function(pobj){
 
 #' Save Portfolio Function
 #'
-#' Function saves the portfolio as .RData file in specified directory. Function
-#' uses portfolio name for file name
+#' Function saves the portfolio to file. RData file extension required.
 #'
 #' @param pobj portfolio object
-#' @param dir directory to save portfolio
+#' @param path file path to save portfolio
 #' @param overwrite logical object to overwrite existing portfolio if exists.
 #'   default to TRUE
 #'
 #' @export
-save_portfolio <- function(pobj, dir='./', overwrite = TRUE){
+save_portfolio <- function(pobj, path, overwrite = TRUE){
   stopifnot(class(pobj) == "portfolio")
+  stopifnot(tools::file_ext(path) == "RData")
 
-  path <- paste0(dir, pobj$name, ".RData")
   if(overwrite){
     save(pobj, file = path)
   }else if (! file.exists(path)){
