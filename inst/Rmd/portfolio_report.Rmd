@@ -1,0 +1,215 @@
+---
+title: "MadStork"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: spacelab
+    orientation: columns
+    vertical_layout: fill
+params:
+   port: NA
+---    
+
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(madstork)
+library(highcharter)
+library(lubridate)
+
+
+port <- params$port
+name <- capitalize(gsub("-|_", " ", port$name))
+```
+
+
+Summary
+=====================================  
+
+
+Column {data-width=700}
+-----------------------------------------------------------------------
+
+### Portfolio Performance
+
+```{r}
+
+mv <- get_market_value(port)
+highchart(height = 600) %>% 
+  hc_xAxis(type = "datetime") %>%
+  hc_chart(type = "area") %>%
+  hc_tooltip(shared = TRUE) %>% 
+  hc_tooltip( pointFormat = '{series.name}: ${point.y:.0f}</span><br/>') %>%
+  hc_add_series_times_values(dates = mv$last_updated,
+                             values = mv$net_value,
+                             color =  as.character(madstork_cols("light grey")),
+                             name = "Net Value",
+                             id = "netvalue",
+                             type = "area") %>% 
+  hc_add_series_times_values(dates = mv$last_updated,
+                             values = mv$net_value,
+                             color =  as.character(madstork_cols("dark grey")),
+                             name = "Net Value",
+                             id = "netvalue",
+                             type = "line") %>% 
+  hc_add_series_times_values(dates = mv$last_updated,
+                             values = mv$investments_value,
+                             color = as.character(madstork_cols("orange")),
+                             name = "Investments",
+                             fillOpacity = .5,
+                             type = "line") %>%
+  hc_add_series_times_values(dates = mv$last_updated,
+                             values = mv$cash,
+                             color = as.character(madstork_cols("dark blue")),
+                             name = "Cash",
+                             fillOpacity = .5,
+                             type = "line") %>%
+  hc_plotOptions(area = list(
+    dataLabels = list(enabled = FALSE),
+    enableMouseTracking = TRUE)
+  ) %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "MadStork Portfolio Performance Chart") %>% 
+  hc_subtitle(text = name)
+
+```
+
+
+### Portfolio Returns
+
+```{r}
+library(formattable)
+rbind(
+  get_market_value(port) %>% 
+    filter(last_updated >= (max(last_updated) - 60^2*25)) %>%
+    summarise_at(c("cash", "investments_value", "net_value"),
+                 .funs = funs(tail(., 1)/head(., 1) - 1)),
+  get_market_value(port) %>% 
+    filter(last_updated >= (max(last_updated) - 60^2*24.15*7)) %>%
+    summarise_at(c("cash", "investments_value", "net_value"),
+                 .funs = funs(tail(., 1)/head(., 1) - 1)),
+  get_market_value(port) %>% 
+    filter(last_updated >= (max(last_updated) - 60^2*24*30)) %>%
+    summarise_at(c("cash", "investments_value", "net_value"),
+                 .funs = funs(tail(., 1)/head(., 1) - 1)),
+  get_market_value(port) %>% 
+    filter(year(last_updated) == max(year(last_updated))) %>%
+    summarise_at(c("cash", "investments_value", "net_value"),
+                 .funs = funs(tail(., 1)/head(., 1) - 1)),
+  get_market_value(port) %>% 
+    filter(last_updated >= (max(last_updated) - 60^2*24*365)) %>%
+    summarise_at(c("cash", "investments_value", "net_value"),
+                 .funs = funs(tail(., 1)/head(., 1) - 1))
+) %>% 
+  mutate(period = c("day", "week", "month", "ytd", "year")) %>% 
+  gather(metric, value, -period) %>%
+  spread(period, value = value) %>% 
+  formattable(.,
+              list(
+                day = formatter("span",
+                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                week = formatter("span",
+                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                month = formatter("span",
+                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                ytd = formatter("span",
+                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                year = formatter("span",
+                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x)))
+              ))
+
+```
+
+
+
+Column {data-width=300}
+-----------------------------------------------------------------------
+
+### Summary
+
+```{r}
+knitr::kable(
+  c("last updated" = max(port$market_value$last_updated),
+    "created on" = min(port$market_value$last_updated)),
+    col.names = port$name)
+```
+
+
+### Market Value
+
+```{r}
+get_market_value(port) %>% 
+  filter(last_updated == max(last_updated)) %>% 
+  select(net_value, investments_value, cash) %>%
+  gather(metric, amount) %>% 
+  formattable(.,
+              list(amount = formatter("span",
+                       style = x ~ style(color = madstork_cols("dark blue"), font.weight = "bold"),
+                        x ~ currency(x, digits = 0))))
+```
+
+
+### Annual Income
+
+```{r}
+get_market_value(port) %>% 
+  filter(last_updated == max(last_updated)) %>% 
+  select(investments_annual_income, tax_liability) %>%
+  mutate(net_income = investments_annual_income - tax_liability) %>% 
+  rename(annual_income = investments_annual_income) %>% 
+  gather(metric, amount) %>% 
+  formattable(.,
+              list(amount = formatter("span",
+                       style = x ~ style(color = madstork_cols("orange"), font.weight = "bold"),
+                        x ~ currency(x, digits = 0))))
+```
+
+
+### Portfolio Allocation
+
+```{r}
+
+```
+
+
+Holdings
+=====================================  
+
+```{r}
+holdings <- get_holdings_market_value(port)
+DT::datatable(
+  holdings[, -1],
+  caption = paste("Last updated on", as.character(holdings[1,1])),
+  options = list(
+    pageLength = 20,
+    lengthMenu = c(10, 20, 50),
+    order = list(list(4, 'desc')))) %>%
+  DT::formatCurrency(c('market_value', 'cost_basis', "unrealized_gain",
+                       "dividend", "annual_income")) %>%
+  DT::formatRound(c("price"), 2) %>% 
+  DT::formatPercentage(c('yield', 'investments_share', "portfolio_share"), 2)
+
+```
+
+
+Activity
+=====================================  
+
+```{r}
+activity <- get_activity(port)
+DT::datatable(
+  activity,
+  options = list(
+    pageLength = 10,
+    lengthMenu = c(10, 20, -1)),
+  rownames = FALSE,
+  filter = 'top') %>% 
+  DT::formatCurrency(c("amount"))
+
+```
+
