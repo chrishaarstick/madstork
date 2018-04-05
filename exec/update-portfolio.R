@@ -12,7 +12,7 @@
 doc <- "Usage: portfolio_update.R [options] [-h]
 
 -p --port PORT  path of Portfolio object to load and update  [default: NA]
--rdir --reportdir REPORTDIR directory to save report in [default: `./`]
+-d --dir DIR directory to save report in [default: `./`]
 "
 
 # Load required packages
@@ -38,7 +38,7 @@ port <- load_portfolio(opt$port)
 port <- update_market_value(port)
 
 # Create Report
-report(port, "performance-report.html", opt$rdir)
+report(port, "performance-report.html", opt$dir)
 
 # Save Updated Port
 save_portfolio(port, opt$port, overwrite = TRUE)
