@@ -38,7 +38,7 @@ port <- load_portfolio(opt$port)
 port <- update_market_value(port)
 
 # Create Report
-#report(port)
+report(port, "performance-report.html", opt$rdir)
 
 # Save Updated Port
 save_portfolio(port, opt$port, overwrite = TRUE)
