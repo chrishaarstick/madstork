@@ -17,7 +17,7 @@ report <- function(...){
 #' @export
 report.portfolio <- function(portfolio, output_file, output_dir){
   checkmate::assert_directory(output_dir)
-  checkmate::assert_character(output_file, extension = ".html")
+  checkmate::assert_character(output_file, pattern = ".html")
   template <- system.file("Rmd", "portfolio_report.Rmd", package = "madstork")
   checkmate::assert_file_exists(template)
   rmarkdown::render(input = template,
