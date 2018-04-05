@@ -15,7 +15,6 @@ madstork_colors <- c(
 #' Function to extract madstork colors as hex codes
 #'
 #' @param ... Character names of madstork_colors
-#'
 madstork_cols <- function(...) {
   cols <- c(...)
 
@@ -24,6 +23,7 @@ madstork_cols <- function(...) {
 
   madstork_colors[cols]
 }
+
 
 madstork_palettes <- list(
   `main`  = madstork_cols("orange", "dark grey", "dark blue", "light grey"),
@@ -36,6 +36,7 @@ madstork_palettes <- list(
 #' @param palette Character name of palette in madstork_palettes
 #' @param reverse Boolean indicating whether the palette should be reversed
 #' @param ... Additional arguments to pass to colorRampPalette()
+#' @export
 madstork_pal <- function(palette = "main", reverse = FALSE, ...) {
   pal <- madstork_palettes[[palette]]
 
@@ -52,7 +53,7 @@ madstork_pal <- function(palette = "main", reverse = FALSE, ...) {
 #' @param reverse Boolean indicating whether the palette should be reversed
 #' @param ... Additional arguments passed to discrete_scale() or
 #'            scale_color_gradientn(), used respectively when discrete is TRUE or FALSE
-#'
+#' @export
 scale_color_madstork <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
   pal <- madstork_pal(palette = palette, reverse = reverse)
 
@@ -71,7 +72,7 @@ scale_color_madstork <- function(palette = "main", discrete = TRUE, reverse = FA
 #' @param reverse Boolean indicating whether the palette should be reversed
 #' @param ... Additional arguments passed to discrete_scale() or
 #'            scale_fill_gradientn(), used respectively when discrete is TRUE or FALSE
-#'
+#' @export
 scale_fill_madstork <- function(palette = "main", discrete = TRUE, reverse = FALSE, ...) {
   pal <- madstork_pal(palette = palette, reverse = reverse)
 

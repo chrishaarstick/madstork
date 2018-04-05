@@ -15,8 +15,12 @@ Imports:
   zoo,
   foreach,
   ggplot2,
-  scales
+  scales,
+  checkmate
 Suggests: 
   testthat,
-  docopt
+  docopt,
+  highcharter,
+  DT,
+  formattable
 RoxygenNote: 6.0.1

@@ -513,8 +513,8 @@ print.portfolio <- function(pobj){
   cat("---------------------------", "\n")
 
   if(nrow(pobj$market_value)>0){
-    mv <- filter(pobj$market_value, last_updated == max(last_updated))
-    cat("Market Value:  ", "\n")
+    mv <- dplyr::filter(pobj$market_value, last_updated == max(last_updated))
+    cat("Market Value as of:", as.character(mv$last_updated), "\n")
     cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
     cat("* Investments ", scales::dollar(mv$investments_value), "\n")
     cat("* Cash        ", scales::dollar(mv$cash), "\n")
