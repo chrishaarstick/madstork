@@ -163,7 +163,7 @@ make_withdraw <- function(pobj, date = Sys.Date(), amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
   action <- withdraw(date, amount, desc)
   action_df <- as.data.frame(action) %>%
-    dplyr::mutate(id = max(pobj$activity$id,0)+1)
+    dplyr::mutate(id = max(pobj$activity$id, 0)+1)
 
   if (action$amount > pobj$cash) {
     stop("Withdraw amount greater than cash available",

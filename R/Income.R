@@ -134,7 +134,8 @@ make_income <- function(pobj, income){
   income_df <- as.data.frame(income) %>%
     dplyr::mutate(id = max(pobj$income$id,0)+1)
   activity <- income_df %>%
-    mutate(desc = paste("income_id:", income_df$id))%>%
+    mutate(desc = paste("income_id:", income_df$id)) %>%
+    mutate(id = max(pobj$activity$id, 0) + 1) %>%
     dplyr::select(date_added, transaction_date, type, amount, desc, id)
 
   pobj$cash <- pobj$cash + income$amount
