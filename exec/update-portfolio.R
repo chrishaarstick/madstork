@@ -16,7 +16,7 @@ doc <- "Usage: portfolio_update.R [options] [-h]
 "
 
 # Load required packages
-for(p in c('docopt', 'madstork', 'tidyverse', 'quantmod')){
+for(p in c('docopt', 'madstork', 'tidyverse', 'quantmod', 'rmarkdown')){
   if(p %in% rownames(installed.packages())){
     suppressMessages(library(p, character.only = T))
   }else{
@@ -30,6 +30,7 @@ opt <- docopt::docopt(doc)
 
 options("getSymbols.warning4.0"=FALSE)
 options("getSymbols.yahoo.warning"=FALSE)
+Sys.setenv("RSTUDIO_PANDOC" = "C:/Program Files/RStudio/bin/pandoc")
 
 # Load Portfolio
 port <- load_portfolio(opt$port)
@@ -38,7 +39,15 @@ port <- load_portfolio(opt$port)
 port <- update_market_value(port)
 
 # Create Report
-report(port, "performance-report.html", opt$dir)
+warning(Sys.getenv("RSTUDIO_PANDOC"), "\n")
+
+if (pandoc_available())
+ warning("pandoc", as.character(pandoc_version()), "is available!\n")
+
+if (pandoc_available("1.12.3"))
+ warning("required version of pandoc is available!\n")
+
+report(port, output_file = "performance-report.html", output_dir = opt$dir)
 
 # Save Updated Port
 save_portfolio(port, opt$port, overwrite = TRUE)

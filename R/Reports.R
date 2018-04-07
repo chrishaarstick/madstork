@@ -14,15 +14,18 @@ report <- function(...) {
 #'
 #' @param portfolio portfolio object
 #' @param output_file name of output file. Needs a html extension
-#' @param output_dir directory to file folder to
+#' @param output_dir directory to write output file to
+#' @param pandoc_dir pandoc directory path
 #' @export
 report.portfolio <- function(portfolio,
                              output_file = "performance-report.html",
-                             output_dir = getwd()) {
+                             output_dir = getwd(),
+                             pandoc_dir = "C:/Program Files/RStudio/bin/pandoc") {
   checkmate::assert_directory(output_dir)
   checkmate::assert_character(output_file, pattern = ".html")
   template <- system.file("Rmd", "portfolio_report.Rmd", package = "madstork")
   checkmate::assert_file_exists(template)
+  Sys.setenv(RSTUDIO_PANDO = pandoc_dir)
   rmarkdown::render(
     input = template,
     intermediates_dir = output_dir,

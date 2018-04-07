@@ -37,7 +37,8 @@ Column {data-width=700}
 mv <- get_market_value(port)
 highchart(height = 600) %>% 
   hc_xAxis(type = "datetime") %>%
-  hc_chart(type = "area") %>%
+  hc_chart(type = "area",
+           zoomType = "xy") %>%
   hc_tooltip(shared = TRUE) %>% 
   hc_tooltip( pointFormat = '{series.name}: ${point.y:.0f}</span><br/>') %>%
   hc_add_series_times_values(dates = mv$last_updated,
@@ -187,7 +188,7 @@ DT::datatable(
   caption = paste("Last updated on", as.character(holdings[1,1])),
   options = list(
     pageLength = 20,
-    lengthMenu = c(10, 20, 50),
+    lengthMenu = c(10, 20),
     order = list(list(4, 'desc')))) %>%
   DT::formatCurrency(c('market_value', 'cost_basis', "unrealized_gain",
                        "dividend", "annual_income")) %>%
@@ -205,8 +206,8 @@ activity <- get_activity(port)
 DT::datatable(
   activity,
   options = list(
-    pageLength = 10,
-    lengthMenu = c(10, 20, -1)),
+    pageLength = 20,
+    lengthMenu = c(10, 20)),
   rownames = FALSE,
   filter = 'top') %>% 
   DT::formatCurrency(c("amount"))
