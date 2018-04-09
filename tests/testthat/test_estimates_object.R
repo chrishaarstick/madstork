@@ -4,6 +4,7 @@
 
 library(madstork)
 library(tidyverse)
+library(lubridate)
 library(testthat)
 library(checkmate)
 
@@ -47,7 +48,7 @@ test_that("mu functions internals work correctly", {
 
   assert_data_frame(e1$mu)
   expect_equal(length(e1$symbols), length(unique(e1$mu$symbol)))
-  expect_equal(e1$symbols, nrow(get_mu(e1)))
+  expect_equal(length(e1$symbols), nrow(get_mu(e1)))
 })
 
 

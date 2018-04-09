@@ -109,10 +109,10 @@ estimates <- function(symbols,
 }
 
 
-#' Calculate Returns from Estiamates Object
+#' Get Returns from Estiamates Object
 #'
 #' @param eobj estimates object
-calc_returns <- function(eobj) {
+get_returns <- function(eobj) {
   checkmate::assert_class(eobj, "estimates")
   rets <- eobj$returns
   checkmate::assert_subset(c("date", "symbol", "return"), colnames(rets))
@@ -136,7 +136,7 @@ add_sample_mu <- function(eobj, fun = "mean", ...){
   .fun <- match.fun(fun)
   checkmate::assert_function(.fun)
 
-  eobj$mu <- calc_returns(eobj) %>%
+  eobj$mu <- get_returns(eobj) %>%
     dplyr::group_by(symbol) %>%
     dplyr::summarise_at("return", funs(.fun), ...)
 
@@ -225,7 +225,7 @@ add_sigma <- function(eobj, sigma) {
 #' Returns Sigma Estimates as a Matrix
 #' @param eobj estimates object
 #' @export
-get_sigma_matrix <- function(eobj) {
+get_sigma <- function(eobj) {
   checkmate::assert_class(eobj, "estimates")
   checkmate::assert_matrix(eobj$sigma)
 
