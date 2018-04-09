@@ -26,7 +26,7 @@ Annual dividend is calculated as the sum of prior years payments. Note if
 either 5 or 13 payments returned, dividend trims the first payment
 }
 \examples{
-\dontrun{
+\donttest{
 library(tidyverse)
 library(quantmod)
 symbols <- c("spy", "tlt")

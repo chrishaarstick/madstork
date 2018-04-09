@@ -11,9 +11,9 @@
 #'
 #' @param symbols vector of stock symbol characters. can be 1 or more
 #' @param start_date starting date for historical prices. default is
-#'   '1990-01-01'. %Y-%m-%d format required
+#'   '1990-01-01'. Y-m-d format required
 #' @param end_date ending date for historical prices. default is current date.
-#'   %Y-%m-%d format required
+#'   Y-m-d format required
 #' @param error_handling option to handle errors within foreach loop. options
 #'   are 'pass', 'remove', or 'stop'
 #' @param warning logical argument to print getSymbol warnings to console
@@ -26,7 +26,7 @@
 #' @importFrom foreach foreach %do%
 #' @importFrom zoo index
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
@@ -78,7 +78,7 @@ get_ochlav <- function(symbols,
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
@@ -108,7 +108,7 @@ get_prices <- function(symbols,
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
@@ -139,9 +139,9 @@ get_current_prices <- function(symbols,
 #'
 #' @param symbols vector of stock symbol characters. can be 1 or more
 #' @param start_date starting date for historical dividends. default is
-#'   '1990-01-01'. %Y-%m-%d format required
+#'   '1990-01-01'. Y-m-d format required
 #' @param end_date ending date for historical dividends. default is current date.
-#'   %Y-%m-%d format required
+#'   Y-m-d format required
 #' @param error_handling option to handle errors within foreach loop. options
 #'   are 'pass', 'remove', or 'stop'
 #'
@@ -150,7 +150,7 @@ get_current_prices <- function(symbols,
 #' @importFrom quantmod getDividends
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
@@ -203,7 +203,7 @@ get_dividends <- function(symbols,
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")

@@ -205,6 +205,10 @@ add_sample_sigma <- function(eobj, fun = "cov", ...){
 #' Add Sigma Estimates
 #'
 #' Function to add pre-calculated sigma matrix to estimates
+#'
+#' @param eobj estimates object
+#' @param sigma sigma estimate matrix
+#' @export
 add_sigma <- function(eobj, sigma) {
   checkmate::assert_class(eobj, "estimates")
   checkmate::assert_class(sigma, "matrix")
@@ -219,6 +223,8 @@ add_sigma <- function(eobj, sigma) {
 #' Get Sigma Matrix
 #'
 #' Returns Sigma Estimates as a Matrix
+#' @param eobj estimates object
+#' @export
 get_sigma_matrix <- function(eobj) {
   checkmate::assert_class(eobj, "estimates")
   checkmate::assert_matrix(eobj$sigma)
@@ -230,6 +236,8 @@ get_sigma_matrix <- function(eobj) {
 #' Get Sigma data.frame
 #'
 #' Returns Sigma Estimates as a long data.frame
+#' @param eobj estimates object
+#' @export
 get_sigma_df <- function(eobj) {
   checkmate::assert_class(eobj, "estimates")
   checkmate::assert_class(eobj$sigma, "matrix")

@@ -22,7 +22,7 @@ Wrapper function around get_prices function that returns current prices. Adds
 timestamp of date pulled
 }
 \examples{
-\dontrun{
+\donttest{
 library(tidyverse)
 library(quantmod)
 symbols <- c("spy", "tlt")
