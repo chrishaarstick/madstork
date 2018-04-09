@@ -56,7 +56,13 @@ new_estimates <- function(symbols,
   )
 }
 
-
+#' Estimate Helper
+#'
+#' Function to create a new estimates object. If prices not supplied, get_prices
+#' function called and returns calculated. Alternatively, returns and prices can
+#' be supplied.
+#' @inheritParams new_estimates
+#' @export
 estimates <- function(symbols,
                       start_date,
                       end_date,
@@ -84,7 +90,9 @@ estimates <- function(symbols,
     returns <- prices %>%
       group_by(symbol) %>%
       mutate(return = price/lag(price, 1) - 1) %>%
-      select(-price) %>% ungroup()
+      filter(! is.na(return)) %>%
+      select(-price) %>%
+      ungroup()
   }
 
   new_estimates(
@@ -100,4 +108,40 @@ estimates <- function(symbols,
   )
 }
 
+
+#' Get Returns from Estiamates Object
+#'
+#' @param eobj estimates object
+get_returns <- function(eobj) {
+  checkmate::assert_class(eobj, "estimates")
+  rets <- eobj$returns
+  checkmate::assert_subset(c("date", "symbol", "return"), colnames(rets))
+  rets
+}
+
+
+#' Add Sample Mu to Estimates
+#'
+#' Function adds mu estimates. Allows for configurable function applied to
+#' sample returns
+#'
+#' @param eobj estimates object
+#' @param fun summarise function. default is mean
+#' @param ... additional arguments to pass to summarising function
+#'
+#' @return updated estimates object
+#' @export
+#'
+#' @examples
+add_sample_mu <- function(eobj, fun = "mean", ...){
+  checkmate::assert_class(eobj, "estimates")
+  .fun <- match.fun(fun)
+  checkmate::assert_function(.fun)
+
+  eobj$mu <- get_returns(eobj) %>%
+    group_by(symbol) %>%
+    summarise_at("return", funs(.fun), ...)
+
+  eobj
+}
 
