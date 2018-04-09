@@ -1,3 +1,19 @@
+#' Estimates Class Constructer function
+#'
+#' Creates an estimate object
+#'
+#' @param symbols vector of security symbols
+#' @param start_date start date for historical prices
+#' @param end_date end date for historical prices
+#' @param grain time grain of returns. Can be either day, week, month, year
+#' @param periods number of time periods
+#' @param prices optional input for security prices
+#' @param returns optional input for security returns
+#' @param mu optional input for mean estimates
+#' @param sigma optional input for sigma estimate
+#'
+#' @return estimates object
+#' @export
 new_estimates <- function(symbols,
                           start_date,
                           end_date,
