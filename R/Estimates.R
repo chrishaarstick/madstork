@@ -78,21 +78,21 @@ estimates <- function(symbols,
 
   if(is.null(prices)) {
     prices <- get_prices(symbols, start_date = start_date, end_date = end_date) %>%
-      group_by(symbol, floor = floor_date(date, unit = grain)) %>%
-      filter(date == max(date)) %>%
-      ungroup() %>%
-      select(-floor)
+      dplyr::group_by(symbol, floor = floor_date(date, unit = grain)) %>%
+      dplyr::filter(date == max(date)) %>%
+      dplyr::ungroup() %>%
+      dplyr::select(-floor)
   }else{
     if(! is.null(prices)) checkmate::assert_subset(c("date", "symbol", "price"), colnames(prices))
   }
 
   if(is.null(returns)) {
     returns <- prices %>%
-      group_by(symbol) %>%
-      mutate(return = price/lag(price, 1) - 1) %>%
-      filter(! is.na(return)) %>%
-      select(-price) %>%
-      ungroup()
+      dplyr::group_by(symbol) %>%
+      dplyr::mutate(return = price/lag(price, 1) - 1) %>%
+      dplyr::filter(! is.na(return)) %>%
+      dplyr::select(-price) %>%
+      dplyr::ungroup()
   }
 
   new_estimates(
@@ -109,10 +109,10 @@ estimates <- function(symbols,
 }
 
 
-#' Get Returns from Estiamates Object
+#' Calculate Returns from Estiamates Object
 #'
 #' @param eobj estimates object
-get_returns <- function(eobj) {
+calc_returns <- function(eobj) {
   checkmate::assert_class(eobj, "estimates")
   rets <- eobj$returns
   checkmate::assert_subset(c("date", "symbol", "return"), colnames(rets))
@@ -120,28 +120,122 @@ get_returns <- function(eobj) {
 }
 
 
-#' Add Sample Mu to Estimates
+#' Add Calculated Sample Mu to Estimates
 #'
 #' Function adds mu estimates. Allows for configurable function applied to
 #' sample returns
 #'
 #' @param eobj estimates object
 #' @param fun summarise function. default is mean
-#' @param ... additional arguments to pass to summarising function
+#' @param ... additional arguments to pass to function
 #'
 #' @return updated estimates object
 #' @export
-#'
-#' @examples
 add_sample_mu <- function(eobj, fun = "mean", ...){
   checkmate::assert_class(eobj, "estimates")
   .fun <- match.fun(fun)
   checkmate::assert_function(.fun)
 
-  eobj$mu <- get_returns(eobj) %>%
-    group_by(symbol) %>%
-    summarise_at("return", funs(.fun), ...)
+  eobj$mu <- calc_returns(eobj) %>%
+    dplyr::group_by(symbol) %>%
+    dplyr::summarise_at("return", funs(.fun), ...)
 
   eobj
 }
 
+
+#' Add Mu Estimates
+#'
+#' Function adds pre-calculated mu estimates. Mu estimates should contain
+#' estimates for all symbols in estimate object
+#'
+#' @param eobj estimates object
+#' @param mu data.frame with mu estimates. requires symbol and return column
+#'   names
+#'
+#' @return upated estimates object
+#' @export
+add_mu <- function(eobj, mu) {
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_data_frame(mu)
+  checkmate::assert_subset(c("symbol", "return"), colnames(mu))
+  checkmate::assert_set_equal(eobj$symbols, unique(mu$symbol))
+
+  eobj$mu <- mu
+  eobj
+}
+
+
+
+#' Get Mu Estimates from Estiamates Object
+#'
+#' @param eobj estimates object
+get_mu <- function(eobj) {
+  checkmate::assert_class(eobj, "estimates")
+  eobj$mu
+}
+
+
+
+#' Add Calculated Sample Sigma to Estimates
+#'
+#' Function adds mu estimates. Allows for configurable function applied to
+#' sample returns
+#'
+#' @param eobj estimates object
+#' @param fun summarise function. default is cov
+#' @param ... additional arguments to pass to function
+#'
+#' @return updated estimates object
+#' @export
+add_sample_sigma <- function(eobj, fun = "cov", ...){
+  checkmate::assert_class(eobj, "estimates")
+  .fun <- match.fun(fun)
+  checkmate::assert_function(.fun)
+
+  eobj$sigma <- get_returns(eobj) %>%
+    tidyr::spread(key = symbol, value = return) %>%
+    dplyr::select(-date) %>%
+    dplyr::do(as.data.frame(.fun(., ...))) %>%
+    as.matrix()
+
+  eobj
+}
+
+#' Add Sigma Estimates
+#'
+#' Function to add pre-calculated sigma matrix to estimates
+add_sigma <- function(eobj, sigma) {
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_class(sigma, "matrix")
+  checkmate::assert_matrix(sigma,
+                           any.missing = FALSE,
+                           nrow = length(eobj$symbols),
+                           ncols = length(eobj$symbols))
+  eobj$sigma <- sigma
+}
+
+
+#' Get Sigma Matrix
+#'
+#' Returns Sigma Estimates as a Matrix
+get_sigma_matrix <- function(eobj) {
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_matrix(eobj$sigma)
+
+  eobj$sigma[eobj$symbols, eobj$symbols]
+}
+
+
+#' Get Sigma data.frame
+#'
+#' Returns Sigma Estimates as a long data.frame
+get_sigma_df <- function(eobj) {
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_class(eobj$sigma, "matrix")
+
+  eobj$sigma %>%
+    as.data.frame() %>%
+    dplyr::mutate(symbol1 = rownames(eobj$sigma)) %>%
+    tidyr::gather(key = symbol2, value = sigma, -symbol1)
+}
