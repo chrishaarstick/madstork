@@ -170,9 +170,13 @@ add_mu <- function(eobj, mu) {
 #' Get Mu Estimates from Estiamates Object
 #'
 #' @param eobj estimates object
+#' @export
+#' @return data.frame with ordered symbols
 get_mu <- function(eobj) {
   checkmate::assert_class(eobj, "estimates")
-  eobj$mu
+  eobj$mu %>%
+    dplyr::mutate(symbol = factor(symbol, levels = eobj$symbols)) %>%
+    dplyr::arrange(symbol)
 }
 
 
@@ -246,4 +250,119 @@ get_sigma_df <- function(eobj) {
     as.data.frame() %>%
     dplyr::mutate(symbol1 = rownames(eobj$sigma)) %>%
     tidyr::gather(key = symbol2, value = sigma, -symbol1)
+}
+
+
+
+
+#' Get Estimated Holdings Market Value
+#'
+#' Update portfolio's holding market values with mu estimates
+#'
+#' @param pobj portfolio object
+#' @param eobj estimates object
+#'
+#' @return data.frame with updated holdings market values
+#' @export
+get_estimated_holdings_market_value <- function(pobj, eobj) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_subset(pobj$holdings$symbols, eobj$symbols)
+
+  get_holdings_market_value(pobj) %>%
+    dplyr::inner_join(get_mu(eobj), by = "symbol") %>%
+    dplyr::mutate(
+      estimate_end_date = eobj$estimate_end_date,
+      price = price * (1 + return),
+      market_value = price * quantity,
+      unrealized_gain = market_value - cost_basis,
+      yield = annual_income / market_value,
+      investments_share = market_value / sum(market_value),
+      portfolio_share = market_value / (sum(market_value) + get_cash(pobj))
+    ) %>%
+    dplyr::select(
+      estimate_end_date,
+      symbol,
+      quantity,
+      price,
+      market_value,
+      cost_basis,
+      unrealized_gain,
+      dividend,
+      annual_income,
+      yield,
+      investments_share,
+      portfolio_share
+    )
+}
+
+#' Get Estimated Portfolio Market Value
+#'
+#' Update portfolio values with mu estimates
+#'
+#' @param pobj portfolio object
+#' @param eobj estimates object
+#'
+#' @return data.frame with updated holdings market values
+#' @export
+get_estimated_port_market_value <- function(pobj, eobj) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(eobj, "estimates")
+  ehmv <- get_estimated_holdings_market_value(pobj, eobj)
+
+  data.frame(
+    estimate_end_date = eobj$estimate_end_date,
+    cash = as.numeric(get_cash(pobj)),
+    investments_value = sum(ehmv$market_value),
+    investments_annual_income = sum(ehmv$annual_income),
+    loans = as.numeric(0),
+    tax_liability = as.numeric(get_tax_liability(pobj))
+  ) %>%
+    dplyr::mutate(net_value = cash + investments_value - loans - tax_liability)
+
+}
+
+
+#' Get Estimated Porfolio Stats
+#'
+#' Function calculates estimated portfolio return, risk, sharpe and yield
+#' statistics. Computes for both total portfolio and investments only
+#'
+#' @param pobj portfolio object
+#' @param eobj estimates object
+#'
+#' @return tibble with estimate stats for portfolio and investments only
+#' @export
+get_estimated_port_stats <- function(pobj, eobj) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_subset(pobj$holdings$symbols, eobj$symbols)
+
+  mu <- get_holdings_market_value(pobj) %>%
+    dplyr::select(symbol, investments_share, portfolio_share) %>%
+    tidyr::gather(key="type", value="mu", -symbol) %>%
+    dplyr::inner_join(get_mu(eobj), by = "symbol") %>%
+    dplyr::group_by(type) %>%
+    dplyr::summarise_at("mu", funs(sum(. * return))) %>%
+    dplyr::mutate(type = gsub("_share", "", type))
+
+
+  ehmv <- get_holdings_market_value(pobj) %>%
+    dplyr::mutate(symbol = factor(symbol, levels = eobj$symbols)) %>%
+    dplyr::arrange(symbol)
+  ps <- ehmv$portfolio_share
+  is <- ehmv$investments_share
+  sd <- data.frame(type = c("investments", "portfolio"),
+                   sd = c(sqrt(is %*% get_sigma(eobj) %*% is),
+                          sqrt(ps %*% get_sigma(eobj) %*% ps)))
+
+ pmv <- get_market_value(pobj)
+ yield <- data.frame(type = c("investments", "portfolio"),
+                      yield = c(pmv$investments_annual_income/pmv$investments_value,
+                                pmv$investments_annual_income/pmv$net_value))
+
+  dplyr::inner_join(port_mu, port_sd, by="type") %>%
+    dplyr::mutate(sharpe = mu/sd) %>%
+    dplyr::inner_join(yield, by = "type")
+
 }

@@ -14,10 +14,10 @@ context("Estimates Class")
 yrs <- 5
 syms <- c("SPY", "TLT", "GLD")
 e1 <- estimates(symbols = syms,
-                   start_date = Sys.Date() - years(yrs),
-                   end_date = Sys.Date(),
-                   grain = "year",
-                   periods = 1) %>%
+                start_date = Sys.Date() - years(yrs),
+                end_date = Sys.Date(),
+                grain = "year",
+                periods = 1) %>%
   add_sample_mu() %>%
   add_sample_sigma()
 
