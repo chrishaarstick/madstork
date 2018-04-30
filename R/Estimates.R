@@ -344,7 +344,8 @@ get_estimated_port_stats <- function(pobj, eobj) {
     dplyr::inner_join(get_mu(eobj), by = "symbol") %>%
     dplyr::group_by(type) %>%
     dplyr::summarise_at("mu", funs(sum(. * return))) %>%
-    dplyr::mutate(type = gsub("_share", "", type))
+    dplyr::mutate(type = gsub("_share", "", type)) %>%
+    dplyr::ungroup()
 
 
   ehmv <- get_holdings_market_value(pobj) %>%
@@ -361,8 +362,7 @@ get_estimated_port_stats <- function(pobj, eobj) {
                       yield = c(pmv$investments_annual_income/pmv$investments_value,
                                 pmv$investments_annual_income/pmv$net_value))
 
-  dplyr::inner_join(port_mu, port_sd, by="type") %>%
+  dplyr::inner_join(mu, sd, by="type") %>%
     dplyr::mutate(sharpe = mu/sd) %>%
     dplyr::inner_join(yield, by = "type")
-
 }
