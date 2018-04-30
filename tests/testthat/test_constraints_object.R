@@ -45,6 +45,59 @@ c2 <- constraints(symbols = e1$symbols) %>%
   add_cardinality_constraint(min = 2, max = 4) %>%
   add_min_return(min = .08)
 
+c3 <- constraints(symbols = e1$symbols) %>%
+  add_symbol_constraint(min = 0.0, max = .4)
+
 # Check Constaints
 chk1 <- check_constraints(c1, p1, e1)
 chk2 <- check_constraints(c2, p1, e1)
+chk3 <- check_constraints(c3, p1, e1)
+
+
+test_that("symbol constraint constructers work as expected",{
+  assert_class(c1, "constraints")
+  assert_class(c1$constraints[[1]], "symbol_constraint")
+  expect_equal(length(c1$constraints), 4)
+  assert_class(c3, "constraints")
+  expect_equal(length(c3$constraints), 4)
+  assert_numeric(chk3$max, lower = .4, upper=.4)
+})
+
+test_that("constraint checks work as expected", {
+
+  chk4 <- constraints(symbols = e1$symbols) %>%
+    add_symbol_constraint(symbol = "SPY", max = .2) %>%
+    check_constraints(., p1, e1)
+  expect_equal(chk4$check, FALSE)
+
+  chk5 <- constraints(symbols = e1$symbols) %>%
+    add_cardinality_constraint(max = 3) %>%
+    check_constraints(., p1, e1)
+  expect_equal(chk5$check, FALSE)
+
+  chk6 <- constraints(symbols = e1$symbols) %>%
+    add_group_constraint(symbols = c("SPY", "QQQ"), max = .1) %>%
+    check_constraints(., p1, e1)
+  expect_equal(chk6$check, FALSE)
+
+  chk6i <- constraints(symbols = e1$symbols) %>%
+    add_group_constraint(symbols = c("SPY", "QQQ"), max = 1.0) %>%
+    check_constraints(., p1, e1)
+  expect_equal(chk6i$check, TRUE)
+
+  chk7 <- constraints(symbols = e1$symbols) %>%
+    add_min_return(min = .20) %>%
+    check_constraints(., p1, e1)
+  expect_equal(chk7$check, FALSE)
+
+  chk7i <- constraints(symbols = e1$symbols) %>%
+    add_max_risk(max = .02) %>%
+    check_constraints(., p1, e1)
+  expect_equal(chk7i$check, FALSE)
+
+  chk7ii <- constraints(symbols = e1$symbols) %>%
+    add_min_yield(min = .10) %>%
+    check_constraints(., p1, e1)
+  expect_equal(chk7ii$check, FALSE)
+
+})

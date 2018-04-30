@@ -9,6 +9,9 @@ get_mu(eobj)
 \arguments{
 \item{eobj}{estimates object}
 }
+\value{
+data.frame with ordered symbols
+}
 \description{
 Get Mu Estimates from Estiamates Object
 }

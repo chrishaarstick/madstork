@@ -5,6 +5,15 @@
 # Constraints Class -------------------------------------------------------
 
 
+#' Constraints Constructer
+#'
+#' Creates an object of class constraints
+#'
+#' @param symbols vector of symbols to apply constraints to
+#' @param constraints list of contraints
+#'
+#' @return constraints object
+#' @export
 constraints <- function(symbols,
                         constraints = NULL) {
   checkmate::assert_character(symbols)
@@ -20,6 +29,16 @@ constraints <- function(symbols,
 }
 
 
+#' Add Constraint to Constraints Object
+#'
+#' Appends constraint object to constraints list of contraints. Adds id field to
+#' constraint object
+#'
+#' @param constraints constraints object
+#' @param constraint constraint object
+#'
+#' @return updated constraints object
+#' @export
 add_constraint <- function(constraints, constraint) {
   checkmate::assert_class(constraints, "constraints")
   checkmate::assert_class(constraint, "constraint")
@@ -31,6 +50,18 @@ add_constraint <- function(constraints, constraint) {
 }
 
 
+#' Get Constraints
+#'
+#' Getter function to return constraints object contraints. Subsetable by type
+#' or id
+#'
+#' @param constraints constraints object
+#' @param type type of constraint. valid types are symbol, cardinality, group
+#'   and performance
+#' @param id id of constraint. Equivalent to location in constraints list
+#'
+#' @return list of constraints
+#' @export
 get_constraints <- function(constraints,
                             type = NULL,
                             id = NULL) {
@@ -59,6 +90,18 @@ get_constraints <- function(constraints,
 
 
 
+#' Check Constraints
+#'
+#' Check the validity of portfolio against constraints.
+#'
+#' Function applies all constraints on a portfolio holdings and estimates
+#'
+#' @param constraints constraints object
+#' @param portfolio portfolio object
+#' @param estimates estimates object
+#'
+#' @return data.frame with summary of constraint checks
+#' @export
 check_constraints <- function(constraints, portfolio, estimates) {
   checkmate::assert_class(constraints, "constraints")
   checkmate::assert_class(portfolio, "portfolio")
@@ -83,6 +126,18 @@ check_constraints <- function(constraints, portfolio, estimates) {
 # Constraint Class --------------------------------------------------------
 
 
+#' Constraint Constructer
+#'
+#' Creates an object of class constraint
+#'
+#' @param type character value for type of constraint. valid types are symbol,
+#'   cardinality, group and performance
+#' @param args symbol, symbols or statistic to test
+#' @param min minimum constraint value. inclusive
+#' @param max maximum constraint value. inclusive
+#'
+#' @return object of class constraint
+#' @export
 constraint <- function(type,
                        args,
                        min,
@@ -102,18 +157,38 @@ constraint <- function(type,
 }
 
 
-check_constraint <-
-  function(constraint,
-           holdings = NULL,
-           stats = NULL) {
-    UseMethod("check_constraint")
-  }
+#' Check Constraint
+#'
+#' Check portfolio's holdings and estimated statistics against constraint
+#'
+#' @param constraint constraint object
+#' @param holdings portfolio holdings
+#' @param stats portfolio statistics
+#'
+#' @return data.frame with summary of constraint check
+#' @export
+check_constraint <- function(constraint,
+                             holdings = NULL,
+                             stats = NULL) {
+  UseMethod("check_constraint")
+}
 
 
 
 # Symbol Constraints ------------------------------------------------------
 
 
+#' Symbol Constraint Constructer
+#'
+#' Inherits from constraint class
+#'
+#' @param symbols 0 or more symbols to constrain. If NULL, sets min and max
+#'   values to all symbols
+#' @param min minimum constraint value. inclusive
+#' @param max maximum constraint value. inclusive
+#'
+#' @return
+#' @export
 symbol_constraint <- function(symbols,
                               min,
                               max) {
@@ -128,6 +203,16 @@ symbol_constraint <- function(symbols,
 }
 
 
+#' Add Symbol Constraint to Constraints Object
+#'
+#' Symbol constraints constrain the share of a portfolio's market value a symbol
+#' can have
+#'
+#' @param constraints constraints object
+#' @inheritParams symbol_constraint
+#'
+#' @return updated constraints object
+#' @export
 add_symbol_constraint <- function(constraints,
                                   symbol = NULL,
                                   min = 0.0,
@@ -149,7 +234,8 @@ add_symbol_constraint <- function(constraints,
   constraints
 }
 
-
+#' @export
+#' @rdname print
 print.symbol_constraint <- function(constraint) {
   cat(
     "Symbol Constraint:",
@@ -164,28 +250,39 @@ print.symbol_constraint <- function(constraint) {
 }
 
 
-check_constraint.symbol_constraint <-
-  function(constraint, holdings, ...) {
-    checkmate::assert_subset(c("symbol", "portfolio_share"), colnames(holdings))
-    share <-
-      holdings[holdings$symbol == constraint$args, "portfolio_share"]
-    check <-
-      ifelse(share < constraint$min |
-               share > constraint$max, FALSE, TRUE)
-    data.frame(
-      type = constraint$type,
-      args = constraint$args,
-      min = constraint$min,
-      max = constraint$max,
-      value = share,
-      check = check
-    )
-  }
+#' @export
+#' @rdname check_constraint
+check_constraint.symbol_constraint <- function(constraint, holdings, ...) {
+  checkmate::assert_subset(c("symbol", "portfolio_share"), colnames(holdings))
+  share <-
+    holdings[holdings$symbol == constraint$args, "portfolio_share"]
+  check <-
+    ifelse(share < constraint$min |
+             share > constraint$max, FALSE, TRUE)
+  data.frame(
+    type = constraint$type,
+    args = constraint$args,
+    min = constraint$min,
+    max = constraint$max,
+    value = share,
+    check = check
+  )
+}
 
 
 # Cardinality Constraints -------------------------------------------------
 
 
+#' Cardinality Constraint Constructer
+#'
+#' Cardinality constraints limit number of symbols portfolio can hold. Inherits
+#' from constraint class
+#'
+#' @param min minimum constraint value. inclusive
+#' @param max maximum constraint value. inclusive
+#'
+#' @return object of class cardinality_constraint
+#' @export
 cardinality_constraint <- function(min,
                                    max) {
   checkmate::assert_number(min, lower = 0.0)
@@ -198,6 +295,13 @@ cardinality_constraint <- function(min,
 }
 
 
+#' Add Cardinality Constraint to Constraints Object
+#'
+#' @param constraints constraints object
+#' @inheritParams cardinality_constraint
+#'
+#' @return updated constraints object
+#' @export
 add_cardinality_constraint <- function(constraints,
                                        min = 0,
                                        max = NULL) {
@@ -212,6 +316,8 @@ add_cardinality_constraint <- function(constraints,
 }
 
 
+#' @export
+#' @rdname print
 print.cardinality_constraint <- function(constraint) {
   cat(
     "Cardinality Constraint:",
@@ -224,27 +330,38 @@ print.cardinality_constraint <- function(constraint) {
   )
 }
 
-
-check_constraint.cardinality_constraint <-
-  function(constraint, holdings, ...) {
-    checkmate::assert_subset(c("symbol"), colnames(holdings))
-    n <- length(unique(holdings$symbol))
-    check <-
-      ifelse(n < constraint$min | n > constraint$max, FALSE, TRUE)
-    data.frame(
-      type = constraint$type,
-      args = "",
-      min = constraint$min,
-      max = constraint$max,
-      value = n,
-      check = check
-    )
-  }
+#' @export
+#' @rdname check_constraint
+check_constraint.cardinality_constraint <- function(constraint, holdings, ...) {
+  checkmate::assert_subset(c("symbol"), colnames(holdings))
+  n <- length(unique(holdings$symbol))
+  check <-
+    ifelse(n < constraint$min | n > constraint$max, FALSE, TRUE)
+  data.frame(
+    type = constraint$type,
+    args = "",
+    min = constraint$min,
+    max = constraint$max,
+    value = n,
+    check = check
+  )
+}
 
 
 # Group Constraints -------------------------------------------------------
 
 
+#' Group Constraint Constructer
+#'
+#' Group constraints constrain the total share of a portfolio's market value 2
+#' or more symbols can have. Inherits from constraint class
+#'
+#' @param symbols 1 or more symbols
+#' @param min minimum constraint value. inclusive
+#' @param max maximum constraint value. inclusive
+#'
+#' @return group_constraint object
+#' @export
 group_constraint <- function(symbols,
                              min,
                              max) {
@@ -259,6 +376,14 @@ group_constraint <- function(symbols,
 }
 
 
+#' Add Group Constraint to Constraints Object
+#'
+#'
+#' @param constraints constraints object
+#' @inheritParams group_constraint
+#'
+#' @return updated constraints object
+#' @export
 add_group_constraint <- function(constraints,
                                  symbols = NULL,
                                  min = 0.0,
@@ -271,30 +396,59 @@ add_group_constraint <- function(constraints,
 }
 
 
-check_constraint.group_constraint <-
-  function(constraint, holdings, ...) {
-    checkmate::assert_subset(c("symbol", "portfolio_share"), colnames(holdings))
-    share <- holdings %>%
-      dplyr::filter(symbol %in% constraint$args) %>%
-      dplyr::summarise_at("portfolio_share", sum) %>%
-      .$portfolio_share
-    check <-
-      ifelse(share < constraint$min |
-               share > constraint$max, FALSE, TRUE)
-    data.frame(
-      type = constraint$type,
-      args = paste(constraint$args, collapse = ","),
-      min = constraint$min,
-      max = constraint$max,
-      value = share,
-      check = check
+#' @export
+#' @rdname print
+print.group_constraint <- function(constraint) {
+  cat(
+    "Group Constraint:",
+    paste0(
+      "[", paste(constraint$args, collapse=", "), "]",
+      " min share = ",
+      constraint$min,
+      ", max share = ",
+      constraint$max
     )
-  }
+  )
+}
+
+
+#' @export
+#' @rdname check_constraint
+check_constraint.group_constraint <- function(constraint, holdings, ...) {
+  checkmate::assert_subset(c("symbol", "portfolio_share"), colnames(holdings))
+  share <- holdings %>%
+    dplyr::filter(symbol %in% constraint$args) %>%
+    dplyr::summarise_at("portfolio_share", sum) %>%
+    .$portfolio_share
+  check <-
+    ifelse(share < constraint$min |
+             share > constraint$max, FALSE, TRUE)
+  data.frame(
+    type = constraint$type,
+    args = paste(constraint$args, collapse = ","),
+    min = constraint$min,
+    max = constraint$max,
+    value = share,
+    check = check
+  )
+}
 
 
 # Performance Constraints -------------------------------------------------
 
 
+#' Performance Constraint Constructer
+#'
+#' Performance constraints constrain the value of a portfolio's estimated
+#' statistics. Inherits from class constraint
+#'
+#' @param statistic character input for portfolio statistic. valid statistics
+#'   are mu, sd, sharpe or yield
+#' @param min minimum constraint value. inclusive
+#' @param max maximum constraint value. inclusive
+#'
+#' @return performance_constraint object
+#' @export
 performance_constraint <- function(statistic,
                                    min,
                                    max) {
@@ -309,6 +463,13 @@ performance_constraint <- function(statistic,
 }
 
 
+#' Add Minimum Return Performance Constraint to Contraints Object
+#'
+#' @param constraints constraints object
+#' @param min minumum return value
+#'
+#' @return updated constraints object
+#' @export
 add_min_return <- function(constraints,
                            min = NULL) {
   checkmate::assert_class(constraints, "constraints")
@@ -318,6 +479,14 @@ add_min_return <- function(constraints,
 }
 
 
+
+#' Add Maximum Risk Performance Constraint to Contraints Object
+#'
+#' @param constraints constraints object
+#' @param min maximum risk value
+#'
+#' @return updated constraints object
+#' @export
 add_max_risk <- function(constraints,
                          max = NULL) {
   checkmate::assert_class(constraints, "constraints")
@@ -327,7 +496,13 @@ add_max_risk <- function(constraints,
 }
 
 
-
+#' Add Minimum Yield Performance Constraint to Contraints Object
+#'
+#' @param constraints constraints object
+#' @param min minumum yield value
+#'
+#' @return updated constraints object
+#' @export
 add_min_yield <- function(constraints,
                           min = NULL) {
   checkmate::assert_class(constraints, "constraints")
@@ -337,19 +512,36 @@ add_min_yield <- function(constraints,
 }
 
 
-
-check_constraint.performance_constraint <- function(constraint, stats, ...) {
-    checkmate::assert_subset(c("mu", "sd", "sharpe", "yield"), colnames(stats))
-    checkmate::assert_choice(stats$type, "portfolio")
-    stat <- stats[[constraint$args]]
-    check <- ifelse(stat < constraint$min |
-               stat > constraint$max, FALSE, TRUE)
-    data.frame(
-      type = constraint$type,
-      args = constraint$args,
-      min = constraint$min,
-      max = constraint$max,
-      value = stat,
-      check = check
+#' @export
+#' @rdname print
+print.performance_constraint <- function(constraint) {
+  cat(
+    "Performance Constraint:",
+    paste0(
+      constraint$args,
+      " min = ",
+      constraint$min,
+      ", max = ",
+      constraint$max
     )
-  }
+  )
+}
+
+
+#' @export
+#' @rdname check_constraint
+check_constraint.performance_constraint <- function(constraint, stats, ...) {
+  checkmate::assert_subset(c("mu", "sd", "sharpe", "yield"), colnames(stats))
+  checkmate::assert_choice(stats$type, "portfolio")
+  stat <- stats[[constraint$args]]
+  check <- ifelse(stat < constraint$min |
+                    stat > constraint$max, FALSE, TRUE)
+  data.frame(
+    type = constraint$type,
+    args = constraint$args,
+    min = constraint$min,
+    max = constraint$max,
+    value = stat,
+    check = check
+  )
+}
