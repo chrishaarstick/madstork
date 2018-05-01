@@ -9,7 +9,7 @@ transfer_out(pobj, id, date = Sys.Date(), desc = "")
 \arguments{
 \item{pobj}{portfolio object}
 
-\item{id}{trade id of holding to sell}
+\item{id}{holding id to sell}
 
 \item{date}{date of transaction. Date type}
 

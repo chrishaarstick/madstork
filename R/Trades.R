@@ -221,7 +221,7 @@ sell <- function(date,
 #' history and holdings
 #'
 #' @param pobj portfolio object
-#' @param id trade id of holding to sell
+#' @param id holding id to sell
 #' @param trans_cost transaction cost (dollars per share)
 #' @inheritParams sell
 #' @importFrom magrittr %>%

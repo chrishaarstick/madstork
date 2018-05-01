@@ -368,6 +368,8 @@ get_income <- function(pobj) {
 #' Calculates market value, income and yield
 #'
 #' @param pobj portfolio object
+#' @param refresh logical option to refresh holdings price and dividend data.
+#'   default it TRUE
 #'
 #' @return data.frame with portfolio's holdings market value
 #' @export
@@ -382,30 +384,39 @@ get_income <- function(pobj) {
 #'  update_holdings_market_value(p1)
 #' }
 #'
-update_holdings_market_value <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+update_holdings_market_value <- function(pobj, refresh = TRUE) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_flag(refresh)
   holdings <- get_holdings(pobj)
-  symbols <- holdings$symbol
-  prices <- get_current_prices(symbols)
-  dividends <- get_annual_dividends(symbols)
+  symbols <- unique(holdings$symbol)
+
+  if (refresh) {
+    prices <- get_current_prices(symbols)
+    dividends <- get_annual_dividends(symbols)
+  } else{
+    holdings_mv <- get_holdings_market_value(pobj)
+    prices <- holdings_mv %>%
+      dplyr::select(symbol, price, last_updated)
+    dividends <- holdings_mv %>%
+      dplyr::select(symbol, annual_dividend = dividend)
+  }
 
   holdings %>%
     dplyr::select(symbol, quantity, price, date_added) %>%
     dplyr::rename(cost = price) %>%
     dplyr::inner_join(prices %>%
-                        select(symbol, price, last_updated),
+                        dplyr::select(symbol, price, last_updated),
                       by = "symbol") %>%
     dplyr::inner_join(dividends %>%
-                        select(symbol, annual_dividend) %>%
-                        rename(dividend = annual_dividend),
+                        dplyr::select(symbol, dividend = annual_dividend),
                       by = "symbol") %>%
-    dplyr::group_by(last_updated,
-                    symbol,
-                    price,
-                    dividend) %>%
-    dplyr::summarise(quantity = sum(quantity),
-                     cost = weighted.mean(cost, quantity)) %>%
-    dplyr::ungroup() %>%
+    # dplyr::group_by(last_updated,
+    #                 symbol,
+    #                 price,
+    #                 dividend) %>%
+    # dplyr::summarise(quantity = sum(quantity),
+    #                  cost = weighted.mean(x=cost, w=quantity)) %>%
+    # dplyr::ungroup() %>%
     dplyr::mutate(
       market_value = quantity * price,
       cost_basis = quantity * cost,
@@ -440,6 +451,8 @@ update_holdings_market_value <- function(pobj) {
 #' overwrites the holdings market value
 #'
 #' @param pobj portfolio object
+#' @param refresh logical option to refresh holdings price and dividend data.
+#'   default it TRUE
 #'
 #' @return Updated Porfolio object with new market value
 #' @export
@@ -452,11 +465,12 @@ update_holdings_market_value <- function(pobj) {
 #'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
 #'  update_market_value(p1)
 #' }
-update_market_value <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+update_market_value <- function(pobj, refresh = TRUE) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_flag(refresh)
 
   holdings <- get_holdings(pobj)
-  holdings_market_value <- update_holdings_market_value(pobj)
+  holdings_market_value <- update_holdings_market_value(pobj, refresh)
 
   current_market_value <- data.frame(
     last_updated = Sys.time(),

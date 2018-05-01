@@ -4,10 +4,13 @@
 \alias{update_market_value}
 \title{Update Porfolio Market Value}
 \usage{
-update_market_value(pobj)
+update_market_value(pobj, refresh = TRUE)
 }
 \arguments{
 \item{pobj}{portfolio object}
+
+\item{refresh}{logical option to refresh holdings price and dividend data.
+default it TRUE}
 }
 \value{
 Updated Porfolio object with new market value

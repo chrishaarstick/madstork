@@ -350,14 +350,17 @@ get_estimated_port_stats <- function(pobj, eobj) {
 
   ehmv <- get_holdings_market_value(pobj) %>%
     dplyr::mutate(symbol = factor(symbol, levels = eobj$symbols)) %>%
-    dplyr::arrange(symbol)
+    dplyr::arrange(symbol) %>%
+    dplyr::group_by(symbol) %>%
+    dplyr::summarise_at(c("investments_share", "portfolio_share"), sum) %>%
+    dplyr::ungroup()
   ps <- ehmv$portfolio_share
   is <- ehmv$investments_share
   sd <- data.frame(type = c("investments", "portfolio"),
                    sd = c(sqrt(is %*% get_sigma(eobj) %*% is),
                           sqrt(ps %*% get_sigma(eobj) %*% ps)))
 
- pmv <- get_market_value(pobj)
+ pmv <- tail(get_market_value(pobj), 1)
  yield <- data.frame(type = c("investments", "portfolio"),
                       yield = c(pmv$investments_annual_income/pmv$investments_value,
                                 pmv$investments_annual_income/pmv$net_value))

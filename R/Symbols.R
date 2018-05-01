@@ -1,8 +1,6 @@
 
 
 
-
-
 #' Get Securities Price and Volume Data
 #'
 #' Wrapper function to get historical security prices for 1 or more symbols.
