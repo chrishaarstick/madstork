@@ -10,7 +10,8 @@
 #' @param prices optional input for security prices
 #' @param returns optional input for security returns
 #' @param mu optional input for mean estimates
-#' @param sigma optional input for sigma estimate
+#' @param sigma optional input for sigma estimates
+#' @param dividends optional input for dividend estimates
 #'
 #' @return estimates object
 #' @export
@@ -22,7 +23,8 @@ new_estimates <- function(symbols,
                           prices,
                           returns,
                           mu,
-                          sigma
+                          sigma,
+                          dividends
 ){
 
   checkmate::assert_character(symbols)
@@ -38,7 +40,8 @@ new_estimates <- function(symbols,
   if(! is.null(mu)) checkmate::assert_subset(c("symbol", "mu"), colnames(mu))
   checkmate::assert_matrix(sigma, null.ok = TRUE, any.missing = FALSE,
                            nrow = length(symbols), ncols = length(symbols))
-
+  if(! is.null(dividends)) checkmate::assert_subset(c("symbol", "dividend"), colnames(dividends))
+  checkmate::assert_data_frame(dividends, null.ok = TRUE)
   structure(
     list(
       symbols = symbols,
@@ -50,7 +53,8 @@ new_estimates <- function(symbols,
       prices = prices,
       returns = returns,
       mu = mu,
-      sigma = sigma
+      sigma = sigma,
+      dividends = dividends
     ),
     class = "estimates"
   )
@@ -104,7 +108,8 @@ estimates <- function(symbols,
     prices = prices,
     returns = returns,
     mu = NULL,
-    sigma = NULL
+    sigma = NULL,
+    dividends = NULL
   )
 }
 
@@ -221,6 +226,7 @@ add_sigma <- function(eobj, sigma) {
                            nrow = length(eobj$symbols),
                            ncols = length(eobj$symbols))
   eobj$sigma <- sigma
+  eobj
 }
 
 
@@ -253,6 +259,47 @@ get_sigma_df <- function(eobj) {
 }
 
 
+#' Add Dividends
+#'
+#' Adds Annual Dividend amounts to Estimates
+#' @param eobj estimates object
+#' @export
+add_dividends <- function(eobj) {
+  checkmate::assert_class(eobj, "estimates")
+
+  divs <- eobj$symbols %>%
+    get_annual_dividends() %>%
+    dplyr::select(symbol, dividend = annual_dividend)
+  eobj$dividends <- divs
+  eobj
+}
+
+
+#' Get Estimates Stats
+#'
+#' Function gets Estimates stats by symobl
+#'
+#' Returns mu return, standard deviation, sharpe ratio and annual dividend
+#' @param eobj estimates object
+#' @export
+get_estimates_stats <- function(eobj) {
+  checkmate::assert_class(eobj, "estimates")
+  if(is.null(eobj$mu)) stop("missing mu estimtes")
+  if(is.null(eobj$dividends)) stop("missing dividends")
+  if(is.null(eobj$sigma)) stop("missing sigma")
+
+  eobj$mu %>%
+    dplyr::inner_join(eobj$dividends, by="symbol") %>%
+    dplyr::inner_join(
+      get_sigma_df(eobj) %>%
+        dplyr::filter(symbol1 == symbol2) %>%
+        dplyr::mutate(sd = sqrt(sigma)) %>%
+        dplyr::select(symbol = symbol1, sd),
+      by = "symbol"
+    ) %>%
+    dplyr::mutate(sharpe = return/sd) %>%
+    dplyr::select(symbol, return, sd, sharpe, yield = dividend)
+}
 
 
 #' Get Estimated Holdings Market Value
@@ -369,3 +416,4 @@ get_estimated_port_stats <- function(pobj, eobj) {
     dplyr::mutate(sharpe = mu/sd) %>%
     dplyr::inner_join(yield, by = "type")
 }
+

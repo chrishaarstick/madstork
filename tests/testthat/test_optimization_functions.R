@@ -19,7 +19,8 @@ e1 <- estimates(symbols = syms,
                 grain = "year",
                 periods = 1) %>%
   add_sample_mu() %>%
-  add_sample_sigma()
+  add_sample_sigma() %>%
+  add_dividends()
 
 
 # Create Portfolio

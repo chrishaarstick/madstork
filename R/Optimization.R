@@ -146,3 +146,21 @@ get_buy_trades.character <- function(obj,
   }
   buys
 }
+
+
+trade_pairs <- function(obj){
+  checkmate::assert_class(obj, "portfolio_optimization")
+
+  est_stats <- get_estimates_stats(obj$estimates) %>%
+    dplyr::select_at(c("symbol", obj$target))
+
+  grid <- expand.grid(buy = c("CASH", obj$estimates$symbols),
+                      sell = c("CASH", as.character(obj$portfolio$holdings$symbol))) %>%
+    dplyr::filter(buy != sell) %>%
+    dplyr::left_join(est_stats, by = c("buy" = "symbol")) %>%
+    dplyr::left_join(est_stats, by = c("sell" = "symbol")) %>%
+    setNames(c("buy", "sell", "buy_target", "sell_target")) %>%
+    tidyr::replace_na(list(buy_target = 0, sell_target = 0)) %>%
+    dplyr::mutate(delta = buy_target - sell_target) %>%
+    dplyr::arrange(-delta)
+}
