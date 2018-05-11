@@ -43,8 +43,38 @@ c1 <- constraints(symbols = e1$symbols) %>%
 
 # Create Optimization
 po1 <- portfolio_optimization(p1, e1, c1, target = "sharpe")
+check_constraints(po1$constraints, po1$portfolio, po1$estimates)
 
-#
+tp <- trade_pairs(po1)
+
+# Iteration
+n <- 2
+amount <- 1000
+
+tp_smpl <- tp %>%
+  filter(active) %>%
+  sample_n(n, weight = delta)
+
+tp_stats <- data.frame()
+
+for(i in 1:nrow(tp_smpl)) {
+  buy <- get_buy_trades(e1, tp_smpl$buy[1], amount, lot_size = 1)
+
+  p2 <- make_buy(p1, symbol=as.character(buy$symbol), quantity = buy$quantity, price = buy$price)
+
+  if(tp_smpl$sell[1] != "CASH") {
+    sell <- get_sell_trades(p1, tp_smpl$sell[1], amount, lot_size = 1)
+    p2 <- make_sell(p2, id = sell$id, quantity = sell$quantity, price = sell$price)
+  }
+
+  check_constraints(po1$constraints, p2, po1$estimates)
+
+  t1_stats <- get_estimated_port_stats(pobj = p2, eobj = e1) %>%
+    dplyr::filter(type == "portfolio") %>%
+    dplyr::mutate(id = tp_smpl$id[i])
+  tp_stats <- rbind(tp_stats, t1_stats)
+}
+
 # # Calculate Impact
 # impact <- data.frame()
 #

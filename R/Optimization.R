@@ -39,10 +39,12 @@ portfolio_optimization <- function(portfolio,
 
 
 get_sell_trades <- function(pobj,
+                            symbols = NULL,
                             amount,
                             lot_size = 1,
                             partial = TRUE) {
   checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_character(symbols, null.ok = TRUE)
   checkmate::assert_number(amount, lower = 0)
   checkmate::assert_number(lot_size, lower = 0)
   checkmate::assert_flag(partial)
@@ -53,6 +55,11 @@ get_sell_trades <- function(pobj,
       get_holdings_market_value(pobj) %>%
         dplyr::select(symbol, quantity, price, market_value),
       by = c("symbol", "quantity"))
+
+  if(! is.null(symbols)) {
+    checkmate::assert_subset(symbols, holdings$symbol)
+    holdings <- dplyr::filter(holdings, symbol %in% symbols)
+  }
 
   sells <- data.frame()
   for (i in 1:nrow(holdings)) {
@@ -85,18 +92,25 @@ get_sell_trades <- function(pobj,
 }
 
 
-get_buy_trades <- function(obj, amount, lot_size) {
+get_buy_trades <- function(obj, symbols, amount, lot_size) {
   UseMethod("get_buy_trades")
 }
 
 
 get_buy_trades.estimates <- function(obj,
+                                     symbols = NULL,
                                      amount,
                                      lot_size = 1) {
+  checkmate::assert_character(symbols, null.ok = TRUE)
   checkmate::assert_number(amount, lower = 0)
   checkmate::assert_number(lot_size, lower = 0)
 
-  symbols <- obj$symbols
+  if( is.null(symbols)) {
+    symbols <- obj$symbols
+  } else {
+    checkmate::assert_subset(symbols, obj$symbols)
+  }
+
   buys <- data.frame()
   for(sym in symbols) {
     price <- obj$prices %>%
@@ -112,13 +126,20 @@ get_buy_trades.estimates <- function(obj,
 
 
 get_buy_trades.portfolio <- function(obj,
+                                     symbols = NULL,
                                      amount,
                                      lot_size = 1) {
+  checkmate::assert_character(symbols, null.ok = TRUE)
   checkmate::assert_number(amount, lower = 0)
   checkmate::assert_number(lot_size, lower = 0)
 
-  holdings <- p1$holdings_market_value
-  symbols <- holdings$symbol
+  holdings <- obj$holdings_market_value
+  if( is.null(symbols)) {
+    symbols <- holdings$symbol
+  } else {
+    checkmate::assert_subset(symbols, holdings$symbol)
+  }
+
   buys <- data.frame()
   for(sym in symbols) {
     price <- holdings %>%
@@ -133,6 +154,7 @@ get_buy_trades.portfolio <- function(obj,
 
 
 get_buy_trades.character <- function(obj,
+                                     symbols = NULL,
                                      amount,
                                      lot_size = 1) {
   checkmate::assert_number(amount, lower = 0)
@@ -154,13 +176,19 @@ trade_pairs <- function(obj){
   est_stats <- get_estimates_stats(obj$estimates) %>%
     dplyr::select_at(c("symbol", obj$target))
 
-  grid <- expand.grid(buy = c("CASH", obj$estimates$symbols),
-                      sell = c("CASH", as.character(obj$portfolio$holdings$symbol))) %>%
+  expand.grid(buy = c("CASH", obj$estimates$symbols),
+              sell = c("CASH", as.character(obj$portfolio$holdings$symbol))) %>%
     dplyr::filter(buy != sell) %>%
+    dplyr::mutate(id = row_number()) %>%
+    dplyr::select(id, buy, sell) %>%
     dplyr::left_join(est_stats, by = c("buy" = "symbol")) %>%
     dplyr::left_join(est_stats, by = c("sell" = "symbol")) %>%
-    setNames(c("buy", "sell", "buy_target", "sell_target")) %>%
+    setNames(c("id", "buy", "sell", "buy_target", "sell_target")) %>%
     tidyr::replace_na(list(buy_target = 0, sell_target = 0)) %>%
-    dplyr::mutate(delta = buy_target - sell_target) %>%
+    dplyr::mutate(delta = buy_target - sell_target,
+                  selected = 0,
+                  trades   = 0,
+                  active = ifelse(delta > 0, TRUE, FALSE)) %>%
     dplyr::arrange(-delta)
+
 }
