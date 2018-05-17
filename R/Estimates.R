@@ -377,10 +377,11 @@ get_estimated_port_market_value <- function(pobj, eobj) {
 #'
 #' @param pobj portfolio object
 #' @param eobj estimates object
+#' @param port_only logical option to return only portfolio levels stats
 #'
 #' @return tibble with estimate stats for portfolio and investments only
 #' @export
-get_estimated_port_stats <- function(pobj, eobj) {
+get_estimated_port_stats <- function(pobj, eobj, port_only = FALSE) {
   checkmate::assert_class(pobj, "portfolio")
   checkmate::assert_class(eobj, "estimates")
   checkmate::assert_subset(pobj$holdings$symbols, eobj$symbols)
@@ -390,7 +391,7 @@ get_estimated_port_stats <- function(pobj, eobj) {
     tidyr::gather(key="type", value="mu", -symbol) %>%
     dplyr::inner_join(get_mu(eobj), by = "symbol") %>%
     dplyr::group_by(type) %>%
-    dplyr::summarise_at("mu", funs(sum(. * return))) %>%
+    dplyr::summarise_at("mu", dplyr::funs(sum(. * return))) %>%
     dplyr::mutate(type = gsub("_share", "", type)) %>%
     dplyr::ungroup()
 
@@ -412,8 +413,15 @@ get_estimated_port_stats <- function(pobj, eobj) {
                       yield = c(pmv$investments_annual_income/pmv$investments_value,
                                 pmv$investments_annual_income/pmv$net_value))
 
-  dplyr::inner_join(mu, sd, by="type") %>%
+  pstats <- dplyr::inner_join(mu, sd, by="type") %>%
     dplyr::mutate(sharpe = mu/sd) %>%
     dplyr::inner_join(yield, by = "type")
+
+  if(port_only) {
+    pstats %>%
+      dplyr::filter(type == "portfolio")
+  } else {
+    pstats
+  }
 }
 

@@ -192,3 +192,30 @@ trade_pairs <- function(obj){
     dplyr::arrange(-delta)
 
 }
+
+
+execute_trade_pair <- function(buy, sell, portfolio, estimates, amount, lot_size = 1, refresh = FALSE) {
+
+  buy <- get_buy_trades(estimates, as.character(buy), amount, lot_size)
+  p2 <- make_buy(portfolio, symbol=as.character(buy$symbol), quantity = buy$quantity, price = buy$price)
+
+  if(sell != "CASH") {
+    sell <- get_sell_trades(portfolio, as.character(sell), amount, lot_size)
+    p2 <- make_sell(p2, id = sell$id, quantity = sell$quantity, price = sell$price)
+  }
+
+  update_market_value(p2, refresh)
+}
+
+
+select_optimal_portfolio <- function(portfolios, estimates, target, criteria) {
+  checkmate::assert_list(portfolios)
+  checkmate::assert_class(estimates, "estimates")
+
+  port <- purrr::map_dfr(portfolios, get_estimated_port_stats, eobj = estimates, .id = "id") %>%
+    dplyr::filter(type == "portfolio") %>%
+    dplyr::top_n(ifelse(criteria == "minimize", -1, 1), !! rlang::sym(target)) %>%
+    .$id %>%
+    as.numeric
+  portfolios[[port]]
+}

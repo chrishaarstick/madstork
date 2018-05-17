@@ -107,7 +107,7 @@ check_constraints <- function(constraints, portfolio, estimates) {
   checkmate::assert_class(portfolio, "portfolio")
   checkmate::assert_class(estimates, "estimates")
 
-  holdings <- get_holdings_market_value(portfolio)
+  holdings <- get_symbol_portfolio_share(portfolio)
   stats <-
     suppressWarnings(get_estimated_port_stats(portfolio, estimates)) %>%
     dplyr::filter(type == "portfolio")
@@ -254,8 +254,9 @@ print.symbol_constraint <- function(constraint) {
 #' @rdname check_constraint
 check_constraint.symbol_constraint <- function(constraint, holdings, ...) {
   checkmate::assert_subset(c("symbol", "portfolio_share"), colnames(holdings))
-  share <-
-    holdings[holdings$symbol == constraint$args, "portfolio_share"]
+  share <- holdings %>%
+    dplyr::filter(symbol == constraint$args) %>%
+    .$portfolio_share
   check <-
     ifelse(share < constraint$min |
              share > constraint$max, FALSE, TRUE)

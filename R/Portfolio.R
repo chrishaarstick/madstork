@@ -87,7 +87,7 @@ portfolio <- function(name,
 #' portfolio("new_port", cash = 100) %>%
 #' get_cash(.)
 get_cash <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   pobj$cash
 }
 
@@ -110,7 +110,7 @@ get_cash <- function(pobj) {
 #' make_deposit(amount = 100) %>%
 #' get_activity(.)
 get_activity <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   a <- pobj$activity
   if (nrow(a) == 0) {
     a
@@ -144,7 +144,7 @@ get_activity <- function(pobj) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_trades(.)
 get_trades <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   t <- pobj$trades
   if (nrow(t) == 0) {
@@ -183,7 +183,7 @@ get_trades <- function(pobj) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_holdings(.)
 get_holdings <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   h <- pobj$holdings
   if (nrow(h) == 0) {
     h
@@ -210,7 +210,7 @@ get_holdings <- function(pobj) {
 #' @return holding with id == .id
 #' @export
 get_holding <- function(pobj, .id) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   stopifnot(is.numeric(.id))
   h <- pobj$holdings
   if (nrow(h) == 0) {
@@ -248,7 +248,7 @@ get_holding <- function(pobj, .id) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_gains(.)
 get_gains <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   g <- pobj$gains
   if (nrow(g) == 0) {
     g
@@ -285,7 +285,7 @@ get_gains <- function(pobj) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_tax_liability(.)
 get_tax_liability <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   pobj$tax_liability
 }
 
@@ -311,7 +311,7 @@ get_tax_liability <- function(pobj) {
 #'  make_sell(id = 1, quantity = 5, price = 105) %>%
 #'  settle_tax_liability(amount = 7.5, withdraw = TRUE)
 settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FALSE){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   if(withdraw){
     pobj <- make_withdraw(pobj, date, amount, desc = "Tax Payment")
@@ -338,7 +338,7 @@ settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FAL
 #' portfolio("new_port", cash = 100) %>%
 #' get_income(.)
 get_income <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   i <- pobj$income
   if (nrow(i) == 0) {
     i
@@ -498,7 +498,7 @@ update_market_value <- function(pobj, refresh = TRUE) {
 #' @return data.frame with portfolio's market value
 #' @export
 get_market_value <- function(pobj){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   pobj$market_value
 }
@@ -511,9 +511,26 @@ get_market_value <- function(pobj){
 #' @return data.frame with portfolio holdings market value
 #' @export
 get_holdings_market_value <- function(pobj){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   pobj$holdings_market_value
+}
+
+
+#' Get Share of Total Portfolio By Symbol
+#'
+#' Aggregates holdings portfolio share to symbol
+#'
+#' @param pobj portfolio object
+#'
+#' @return data.frame with portfolio share by symbol
+#' @export
+get_symbol_portfolio_share <- function(pobj) {
+  checkmate::assert_class(pobj, "portfolio")
+
+  pobj$holdings_market_value %>%
+    dplyr::group_by(symbol) %>%
+    dplyr::summarise_at("portfolio_share", sum)
 }
 
 
@@ -521,7 +538,7 @@ get_holdings_market_value <- function(pobj){
 #'@export
 #'@rdname print
 print.portfolio <- function(pobj){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   cat("Portfolio", pobj$name, "\n")
   cat("---------------------------", "\n")
@@ -564,7 +581,7 @@ print.portfolio <- function(pobj){
 #'
 #' @export
 save_portfolio <- function(pobj, path, overwrite = TRUE){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   stopifnot(tools::file_ext(path) == "RData")
 
   if(overwrite){
