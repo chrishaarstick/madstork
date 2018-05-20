@@ -189,6 +189,7 @@ get_holdings <- function(pobj) {
     h
   } else{
     h %>%
+      dplyr::mutate_at("symbol", as.character) %>%
       dplyr::select_at(c(
         "id",
         "date_added",
@@ -392,31 +393,21 @@ update_holdings_market_value <- function(pobj, refresh = TRUE) {
 
   if (refresh) {
     prices <- get_current_prices(symbols)
-    dividends <- get_annual_dividends(symbols)
+    dividends <- get_annual_dividends(symbols) %>%
+      dplyr::select(symbol, dividend = annual_dividend)
   } else{
     holdings_mv <- get_holdings_market_value(pobj)
     prices <- holdings_mv %>%
-      dplyr::select(symbol, price, last_updated)
+      dplyr::distinct(symbol, price, last_updated)
     dividends <- holdings_mv %>%
-      dplyr::select(symbol, annual_dividend = dividend)
+      dplyr::distinct(symbol, dividend)
   }
 
   holdings %>%
     dplyr::select(symbol, quantity, price, date_added) %>%
     dplyr::rename(cost = price) %>%
-    dplyr::inner_join(prices %>%
-                        dplyr::select(symbol, price, last_updated),
-                      by = "symbol") %>%
-    dplyr::inner_join(dividends %>%
-                        dplyr::select(symbol, dividend = annual_dividend),
-                      by = "symbol") %>%
-    # dplyr::group_by(last_updated,
-    #                 symbol,
-    #                 price,
-    #                 dividend) %>%
-    # dplyr::summarise(quantity = sum(quantity),
-    #                  cost = weighted.mean(x=cost, w=quantity)) %>%
-    # dplyr::ungroup() %>%
+    dplyr::inner_join(prices, by = "symbol") %>%
+    dplyr::inner_join(dividends, by = "symbol") %>%
     dplyr::mutate(
       market_value = quantity * price,
       cost_basis = quantity * cost,
@@ -439,8 +430,7 @@ update_holdings_market_value <- function(pobj, refresh = TRUE) {
       'yield',
       "investments_share",
       "portfolio_share"
-    )) %>%
-    as.data.frame()
+    ))
 }
 
 #' Update Porfolio Market Value

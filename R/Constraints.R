@@ -108,9 +108,7 @@ check_constraints <- function(constraints, portfolio, estimates) {
   checkmate::assert_class(estimates, "estimates")
 
   holdings <- get_symbol_portfolio_share(portfolio)
-  stats <-
-    suppressWarnings(get_estimated_port_stats(portfolio, estimates)) %>%
-    dplyr::filter(type == "portfolio")
+  stats <- get_estimated_port_stats(portfolio, estimates, port_only = TRUE)
 
   checks <- lapply(
     constraints$constraints,

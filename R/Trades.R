@@ -265,6 +265,7 @@ make_sell <- function(pobj,
 
   new_holding <- holding
   new_holding$quantity <- new_holding$quantity - trade$quantity
+  if(new_holding$quantity == 0) new_holding <- NULL
   gain <- gains(trade, holding) %>%
     add_tax_liability() %>%
     dplyr::mutate(id = max(pobj$gains$id, 0) + 1)

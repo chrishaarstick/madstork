@@ -181,7 +181,8 @@ get_mu <- function(eobj) {
   checkmate::assert_class(eobj, "estimates")
   eobj$mu %>%
     dplyr::mutate(symbol = factor(symbol, levels = eobj$symbols)) %>%
-    dplyr::arrange(symbol)
+    dplyr::arrange(symbol) %>%
+    dplyr::mutate_at("symbol", as.character)
 }
 
 
@@ -389,27 +390,29 @@ get_estimated_port_stats <- function(pobj, eobj, port_only = FALSE) {
   mu <- get_holdings_market_value(pobj) %>%
     dplyr::select(symbol, investments_share, portfolio_share) %>%
     tidyr::gather(key="type", value="mu", -symbol) %>%
-    dplyr::inner_join(get_mu(eobj), by = "symbol") %>%
+    dplyr::inner_join(get_mu(eobj) %>%
+                        dplyr::mutate_at("symbol", as.character),
+                      by = "symbol") %>%
     dplyr::group_by(type) %>%
     dplyr::summarise_at("mu", dplyr::funs(sum(. * return))) %>%
     dplyr::mutate(type = gsub("_share", "", type)) %>%
     dplyr::ungroup()
 
-
   ehmv <- get_holdings_market_value(pobj) %>%
+    dplyr::right_join(tibble(symbol = eobj$symbols)) %>%
     dplyr::mutate(symbol = factor(symbol, levels = eobj$symbols)) %>%
     dplyr::arrange(symbol) %>%
     dplyr::group_by(symbol) %>%
-    dplyr::summarise_at(c("investments_share", "portfolio_share"), sum) %>%
+    dplyr::summarise_at(c("investments_share", "portfolio_share"), sum, na.rm = TRUE) %>%
     dplyr::ungroup()
   ps <- ehmv$portfolio_share
   is <- ehmv$investments_share
-  sd <- data.frame(type = c("investments", "portfolio"),
-                   sd = c(sqrt(is %*% get_sigma(eobj) %*% is),
-                          sqrt(ps %*% get_sigma(eobj) %*% ps)))
+  sd <- tibble(type = as.character(c("investments", "portfolio")),
+               sd = as.numeric(c(sqrt(is %*% get_sigma(eobj) %*% is),
+                                 sqrt(ps %*% get_sigma(eobj) %*% ps))))
 
- pmv <- tail(get_market_value(pobj), 1)
- yield <- data.frame(type = c("investments", "portfolio"),
+  pmv <- tail(get_market_value(pobj), 1)
+  yield <- tibble(type = as.character(c("investments", "portfolio")),
                       yield = c(pmv$investments_annual_income/pmv$investments_value,
                                 pmv$investments_annual_income/pmv$net_value))
 
@@ -425,3 +428,60 @@ get_estimated_port_stats <- function(pobj, eobj, port_only = FALSE) {
   }
 }
 
+
+#' Get Estimated Portfolio Values
+#'
+#' Calculates estimated portfolio return, risk, sharpe and income in dollar
+#' values
+#'
+#' @param pobj portfolio object
+#' @param eboj estimates object
+#'
+#' @return data.frame with estimated portfolio values
+#' @export
+get_estimated_port_values <- function(pobj, eobj) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(eobj, "estimates")
+
+  mv <- dplyr::filter(pobj$market_value, last_updated == max(last_updated))
+  hmv <- get_holdings_market_value(pobj)
+  sym_share <- get_symbol_estimtes_share(pobj, eobj)$portfolio_share
+
+  ret <- hmv %>%
+    dplyr::inner_join(get_mu(eobj), by = "symbol") %>%
+    dplyr::summarise_at("market_value", dplyr::funs(sum(. * (1 + return))))
+
+  risk <- mv$investments_value * as.numeric(sqrt(sym_share %*% get_sigma(eobj) %*% sym_share))
+
+  tibble(
+    type = "portfolio",
+    return = as.numeric(ret) - mv$tax_liability + mv$cash,
+    risk = mv$investments_value - risk - mv$tax_liability + mv$cash,
+    income = mv$investments_annual_income - mv$tax_liability) %>%
+    dplyr::mutate(sharpe = return - risk)
+}
+
+
+#' Get Share of Total Portfolio By Symbol for Estimates
+#'
+#' Aggregates holdings portfolio share for all Estimate Symbols
+#'
+#' @param pobj portfolio object
+#' @param eboj estimates object
+#'
+#' @return data.frame with portfolio share for all estimates symbol
+#' @export
+get_symbol_estimtes_share <- function(pobj, eobj) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(eobj, "estimates")
+
+  tibble(symbol = eobj$symbols) %>%
+    left_join(pobj$holdings_market_value,
+              by = "symbol") %>%
+    tidyr::replace_na(list(portfolio_share = 0)) %>%
+    dplyr::group_by(symbol) %>%
+    dplyr::summarise_at("portfolio_share", sum) %>%
+    dplyr::mutate_at("symbol", funs(factor(., levels = eobj$symbols))) %>%
+    dplyr::arrange(symbol) %>%
+    dplyr::mutate_at("symbol", as.character)
+}
