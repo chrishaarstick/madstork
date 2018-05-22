@@ -11,7 +11,7 @@ context("Optimization Functionality")
 
 
 # Create Estimates Class
-yrs <- 5
+yrs <- 10
 syms <- c("SPY", "QQQ", "TLT", "GLD")
 e1 <- estimates(symbols = syms,
                 start_date = Sys.Date() - years(yrs),

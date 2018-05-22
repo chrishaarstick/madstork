@@ -17,7 +17,7 @@ portfolio_optimization <- function(portfolio,
 
   criteria <- ifelse(target %in% c("risk"), "minimize", "maximize")
   tp <- trade_pairs(portfolio, estimates, target)
-  port_stats <- get_estimated_port_stats(portfolio, estimates, port_only = TRUE) %>%
+  port_values <- get_estimated_port_values(portfolio, estimates) %>%
     dplyr::mutate(iter = 0)
 
   structure(
@@ -29,7 +29,7 @@ portfolio_optimization <- function(portfolio,
       target = target,
       criteria = criteria,
       trade_pairs = tp,
-      portfolio_stats = port_stats,
+      portfolio_values = port_values,
       created_on = Sys.time(),
       user = as.character(Sys.info()["user"]),
       desc = desc,
@@ -181,7 +181,7 @@ get_buy_trades.character <- function(obj,
 trade_pairs <- function(portfolio, estimates, target){
   checkmate::assert_class(portfolio, "portfolio")
   checkmate::assert_class(estimates, "estimates")
-  checkmate::assert_choice(target, c("mu", "sd", "sharpe", "yield"))
+  checkmate::assert_choice(target, c("mu", "sd", "sharpe", "yield", "return", "risk", "income"))
 
   est_stats <- get_estimates_stats(estimates) %>%
     dplyr::select_at(c("symbol", target))
@@ -206,11 +206,15 @@ trade_pairs <- function(portfolio, estimates, target){
 
 execute_trade_pair <- function(buy, sell, portfolio, estimates, amount, lot_size = 1, refresh = FALSE) {
 
-  if(sell != "CASH") {
-    sell <- get_sell_trades(portfolio, as.character(sell), amount, lot_size)
-    p2 <- make_sell(portfolio, id = sell$id, quantity = sell$quantity, price = sell$price)
+  p2 <- portfolio
+  if (sell != "CASH") {
+    sells <- get_sell_trades(portfolio, as.character(sell), amount, lot_size)
+    for(i in 1:nrow(sells)) {
+      sell <- sells[i,]
+      p2 <- make_sell(p2, id = sell$id, quantity = sell$quantity, price = sell$price)
+    }
   }
-
+  p2 <- update_market_value(p2, refresh = refresh)
   buy <- get_buy_trades(estimates, as.character(buy), amount, lot_size)
   p2 <- make_buy(p2, symbol = as.character(buy$symbol), quantity = buy$quantity, price = buy$price)
 
@@ -335,12 +339,12 @@ optimize <- function(obj,
     opt_port_id <- port_eval_list %>%
       purrr::map_df(
         .,
-        get_estimated_port_stats,
+        get_estimated_port_values,
         eobj = obj$estimates,
-        port_only = TRUE,
+       # port_only = TRUE,
         .id = "id"
       ) %>%
-      dplyr::top_n(ifelse(obj$criteria == "minimize",-1, 1),
+      dplyr::top_n(ifelse(obj$criteria == "minimize", -1, 1),
                    !!rlang::sym(obj$target)) %>%
       .$id %>%
       head(1)
@@ -361,13 +365,13 @@ optimize <- function(obj,
     # Update Obj
     obj$optimal_portfolio <- opt_port
     obj$portfolios <- c(obj$portfolios, list(opt_port))
-    obj$portfolio_stats <- obj$portfolio_stats %>% rbind(
-      get_estimated_port_stats(opt_port, obj$estimates, port_only = TRUE) %>%
+    obj$portfolio_values <- obj$portfolio_values %>% rbind(
+      get_estimated_port_values(opt_port, obj$estimates) %>%
         dplyr::mutate(iter = i)
     )
 
     if(plot_iter) {
-      print(ggplot(obj$portfolio_stats, aes_string(x='iter', y=obj$target)) +
+      print(ggplot(obj$portfolio_values, aes_string(x='iter', y=obj$target)) +
         geom_line(size=1.05, color=madstork_pal()(1)) +
         theme_minimal() +
         labs(title = "Madstork Next Best Trade Optimization",
@@ -378,7 +382,7 @@ optimize <- function(obj,
     runtime <- as.numeric(difftime(Sys.time(), t1, units = "sec")) < max_runtime
 
     if(i >= improve_lag) {
-      target_improve <- obj$portfolio_stats %>%
+      target_improve <- obj$portfolio_values %>%
         dplyr::mutate_at(obj$target,
                          dplyr::funs(target_improve = ./dplyr::lag(., n=improve_lag))) %>%
         dplyr::filter(iter == max(iter))

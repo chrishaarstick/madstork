@@ -445,7 +445,7 @@ get_estimated_port_values <- function(pobj, eobj) {
 
   mv <- dplyr::filter(pobj$market_value, last_updated == max(last_updated))
   hmv <- get_holdings_market_value(pobj)
-  sym_share <- get_symbol_estimtes_share(pobj, eobj)$portfolio_share
+  sym_share <- get_symbol_estimates_share(pobj, eobj)$portfolio_share
 
   ret <- hmv %>%
     dplyr::inner_join(get_mu(eobj), by = "symbol") %>%
@@ -458,7 +458,7 @@ get_estimated_port_values <- function(pobj, eobj) {
     return = as.numeric(ret) - mv$tax_liability + mv$cash,
     risk = mv$investments_value - risk - mv$tax_liability + mv$cash,
     income = mv$investments_annual_income - mv$tax_liability) %>%
-    dplyr::mutate(sharpe = return - risk)
+    dplyr::mutate(sharpe = (return - mv$net_value)/ (mv$net_value - risk))
 }
 
 
@@ -471,7 +471,7 @@ get_estimated_port_values <- function(pobj, eobj) {
 #'
 #' @return data.frame with portfolio share for all estimates symbol
 #' @export
-get_symbol_estimtes_share <- function(pobj, eobj) {
+get_symbol_estimates_share <- function(pobj, eobj) {
   checkmate::assert_class(pobj, "portfolio")
   checkmate::assert_class(eobj, "estimates")
 
