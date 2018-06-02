@@ -67,7 +67,7 @@ get_constraints <- function(constraints,
                             id = NULL) {
   checkmate::assert_class(constraints, "constraints")
   checkmate::assert_subset(type,
-                           c("symbol", "cardinality", "group", "performance"),
+                           c("cash", "symbol", "cardinality", "group", "performance"),
                            empty.ok = TRUE)
   checkmate::assert_number(id, lower = 1, null.ok = TRUE)
 
@@ -110,13 +110,18 @@ check_constraints <- function(constraints, portfolio, estimates) {
   holdings <- get_symbol_estimates_share(portfolio, estimates)
   stats <- get_estimated_port_stats(portfolio, estimates, port_only = TRUE)
 
-  checks <- lapply(
-    constraints$constraints,
-    check_constraint,
-    holdings = holdings,
-    stats = stats
+  suppressWarnings(
+    purrr::map_df(
+      constraints$constraints,
+      ~ check_constraint(
+        .,
+        portfolio = portfolio,
+        holdings = holdings,
+        stats = stats
+      ),
+      .id = "id"
+    )
   )
-  suppressWarnings(dplyr::bind_rows(checks, .id = "id"))
 }
 
 
@@ -140,7 +145,7 @@ constraint <- function(type,
                        args,
                        min,
                        max) {
-  checkmate::assert_choice(type, c("symbol", "cardinality", "group", "performance"))
+  checkmate::assert_choice(type, c("cash", "symbol", "cardinality", "group", "performance"))
   checkmate::assert_character(args, null.ok = TRUE)
   checkmate::assert_number(min)
   checkmate::assert_number(max)
@@ -160,12 +165,14 @@ constraint <- function(type,
 #' Check portfolio's holdings and estimated statistics against constraint
 #'
 #' @param constraint constraint object
+#' @param portfolio portfolio object
 #' @param holdings portfolio holdings
 #' @param stats portfolio statistics
 #'
 #' @return data.frame with summary of constraint check
 #' @export
 check_constraint <- function(constraint,
+                             portfolio = NULL,
                              holdings = NULL,
                              stats = NULL) {
   UseMethod("check_constraint")
@@ -232,6 +239,7 @@ add_symbol_constraint <- function(constraints,
   constraints
 }
 
+
 #' @export
 #' @rdname print
 print.symbol_constraint <- function(constraint) {
@@ -261,6 +269,85 @@ check_constraint.symbol_constraint <- function(constraint, holdings, ...) {
   data.frame(
     type = constraint$type,
     args = constraint$args,
+    min = constraint$min,
+    max = constraint$max,
+    value = share,
+    check = check
+  )
+}
+
+
+# Cash Constraints -------------------------------------------------------
+
+
+#' Cash Constraint Constructer
+#'
+#' Inherits from constraint class
+#'
+#' @param min minimum constraint value. inclusive
+#' @param max maximum constraint value. inclusive
+#'
+#' @return
+#' @export
+cash_constraint <- function(min,
+                              max) {
+  checkmate::assert_number(min, lower = 0.0, upper = 1.0)
+  checkmate::assert_number(max, lower = 0.0, upper = 1.0)
+
+  structure(
+    constraint(type = "cash", args = NULL, min, max),
+    class = c("cash_constraint", "constraint")
+  )
+}
+
+
+#' Add Cash Constraint to Constraints Object
+#'
+#' Cash constraints constrain the share of a portfolio's cash position
+#'
+#' @param constraints constraints object
+#' @inheritParams cash_constraint
+#'
+#' @return updated constraints object
+#' @export
+add_cash_constraint <- function(constraints,
+                                  min = 0.0,
+                                  max = 1.0) {
+  checkmate::assert_class(constraints, "constraints")
+
+  c1 <- cash_constraint(min, max)
+  add_constraint(constraints, c1)
+}
+
+#' @export
+#' @rdname print
+print.cash_constraint <- function(constraint) {
+  cat(
+    "Cash Constraint:",
+    paste0(
+      " min share = ",
+      constraint$min,
+      ", max share = ",
+      constraint$max
+    )
+  )
+}
+
+
+#' @export
+#' @rdname check_constraint
+check_constraint.cash_constraint <- function(constraint, portfolio, ...) {
+  checkmate::assert_class(portfolio, "portfolio")
+  share <- get_market_value(portfolio) %>%
+    dplyr::filter(last_updated == max(last_updated)) %>%
+    dplyr::mutate(cash_share = cash/net_value) %>%
+    .$cash_share
+  check <-
+    ifelse(share < constraint$min |
+             share > constraint$max, FALSE, TRUE)
+  data.frame(
+    type = constraint$type,
+    args = "",
     min = constraint$min,
     max = constraint$max,
     value = share,

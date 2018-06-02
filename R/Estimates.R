@@ -399,7 +399,7 @@ get_estimated_port_stats <- function(pobj, eobj, port_only = FALSE) {
     dplyr::ungroup()
 
   ehmv <- get_holdings_market_value(pobj) %>%
-    dplyr::right_join(tibble(symbol = eobj$symbols)) %>%
+    dplyr::right_join(tibble(symbol = eobj$symbols), by = "symbol") %>%
     dplyr::mutate(symbol = factor(symbol, levels = eobj$symbols)) %>%
     dplyr::arrange(symbol) %>%
     dplyr::group_by(symbol) %>%
@@ -445,7 +445,9 @@ get_estimated_port_values <- function(pobj, eobj) {
 
   mv <- dplyr::filter(pobj$market_value, last_updated == max(last_updated))
   hmv <- get_holdings_market_value(pobj)
-  sym_share <- get_symbol_estimates_share(pobj, eobj)$portfolio_share
+  sym_share <- get_symbol_estimates_share(pobj, eobj) %>%
+    dplyr::mutate_at("portfolio_share", funs(./sum(.))) %>%
+    .$portfolio_share
 
   ret <- hmv %>%
     dplyr::inner_join(get_mu(eobj), by = "symbol") %>%

@@ -242,8 +242,8 @@ make_sell <- function(pobj,
                       price,
                       desc = "",
                       trans_cost = .05) {
-  stopifnot(class(pobj) == "portfolio")
-  stopifnot(class(id) == "numeric")
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_number(id)
   holding <- pobj %>% get_holding(id)
   Id <- id
 
