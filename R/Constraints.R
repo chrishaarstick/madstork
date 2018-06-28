@@ -89,6 +89,24 @@ get_constraints <- function(constraints,
 }
 
 
+#' Function to filter Constraints by index
+#'
+#' @param constraints constraints object
+#' @param index numeric index to filter constraints by
+filter_constraints <- function(constraints, index) {
+  checkmate::assert_class(constraints, "constraints")
+  checkmate::assert_numeric(index, lower = 0, upper = length(constraints$constraints))
+
+  if(index == 0){
+    constraints_list <- list()
+  } else {
+    constraints_list <- constraints$constraints[index]
+  }
+
+  constraints(constraints$symbols, constraints = constraints_list)
+}
+
+
 
 #' Check Constraints
 #'
@@ -179,6 +197,36 @@ check_constraint <- function(constraint,
 }
 
 
+#' Meet Constraint
+#'
+#' Checks portfolio against constraint and updates portfolio with nbto
+#'
+#' @param constraint constraint object
+#' @param portfolio portfolio object
+#' @param constraints constraints object
+#' @param estimates estimates object
+#' @param prices current symbol prices
+#' @param trade_pairs possible trade pairs
+#' @param target optimization target
+#' @param amount trade amount for nbto
+#' @param lot_size trade lot minimum size
+#' @param max_iter maximum number of iterations for nbto
+#'
+#' @return data.frame with summary of constraint check
+#' @export
+meet_constraint <- function(constraint,
+                            portfolio,
+                            constraints,
+                            estimates,
+                            prices,
+                            trade_pairs,
+                            minimize,
+                            target,
+                            amount,
+                            lot_size,
+                            max_iter) {
+  UseMethod("meet_constraint")
+}
 
 # Symbol Constraints ------------------------------------------------------
 
@@ -260,12 +308,12 @@ print.symbol_constraint <- function(constraint) {
 #' @rdname check_constraint
 check_constraint.symbol_constraint <- function(constraint, holdings, ...) {
   checkmate::assert_subset(c("symbol", "portfolio_share"), colnames(holdings))
+
   share <- holdings %>%
     dplyr::filter(symbol == constraint$args) %>%
     .$portfolio_share
-  check <-
-    ifelse(share < constraint$min |
-             share > constraint$max, FALSE, TRUE)
+  check <- ifelse(share < constraint$min |
+                    share > constraint$max, FALSE, TRUE)
   data.frame(
     type = constraint$type,
     args = constraint$args,
@@ -275,6 +323,68 @@ check_constraint.symbol_constraint <- function(constraint, holdings, ...) {
     check = check
   )
 }
+
+
+
+#' @export
+#' @rdname meet_constraint
+meet_constraint.symbol_constraint <- function(constraint,
+                                              portfolio,
+                                              constraints,
+                                              estimates,
+                                              prices,
+                                              trade_pairs,
+                                              target,
+                                              minimize,
+                                              amount,
+                                              lot_size,
+                                              max_iter = 5) {
+  checkmate::assert_class(portfolio, "portfolio")
+  checkmate::assert_data_frame(prices)
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
+  checkmate::assert_choice(target, c("mu", "sd", "yield", "return", "risk", "sharpe", "income"))
+  checkmate::assert_number(amount, lower = 0)
+  checkmate::assert_number(lot_size, lower = 1)
+
+  # Check constraint
+  port <- portfolio
+  cc <- check_constraint(constraint, port$holdings_market_value)
+  if(! cc$check) {
+    share_amount <- cc$value - cc$min
+
+    total_amount <- get_market_value(portfolio) %>%
+      dplyr::filter(last_updated == max(last_updated)) %>%
+      dplyr::pull(net_value) *
+      abs(share_amount)
+
+    trade_amount <- max(amount, total_amount/max_iter)
+
+    if(share_amount < 0) {
+      tp <- trade_pairs %>%
+        dplyr::filter(buy == cc$args)
+    } else {
+      tp <- trade_pairs %>%
+        dplyr::filter(sell == cc$args)
+    }
+
+    iters <- ceiling(total_amount/trade_amount)
+    for(i in 1:iters) {
+      port <- nbto(
+        pobj = port,
+        cobj = constraints,
+        eobj = estimates,
+        prices = prices,
+        trade_pairs = tp,
+        target = target,
+        minimize = minimize,
+        amount = trade_amount,
+        lot_size = lot_size
+      )
+    }
+  }
+  port
+}
+
 
 
 # Cash Constraints -------------------------------------------------------
@@ -290,7 +400,7 @@ check_constraint.symbol_constraint <- function(constraint, holdings, ...) {
 #' @return
 #' @export
 cash_constraint <- function(min,
-                              max) {
+                            max) {
   checkmate::assert_number(min, lower = 0.0, upper = 1.0)
   checkmate::assert_number(max, lower = 0.0, upper = 1.0)
 
@@ -342,18 +452,81 @@ check_constraint.cash_constraint <- function(constraint, portfolio, ...) {
     dplyr::filter(last_updated == max(last_updated)) %>%
     dplyr::mutate(cash_share = cash/net_value) %>%
     .$cash_share
-  check <-
-    ifelse(share < constraint$min |
-             share > constraint$max, FALSE, TRUE)
+  check <- ifelse(share < constraint$min |
+                    share > constraint$max, FALSE, TRUE)
   data.frame(
     type = constraint$type,
-    args = "",
+    args = "CASH",
     min = constraint$min,
     max = constraint$max,
     value = share,
     check = check
   )
 }
+
+
+
+
+#' @export
+#' @rdname meet_constraint
+meet_constraint.cash_constraint <- function(constraint,
+                                            portfolio,
+                                            constraints,
+                                            estimates,
+                                            prices,
+                                            trade_pairs,
+                                            target,
+                                            minimize,
+                                            amount,
+                                            lot_size,
+                                            max_iter = 5) {
+  checkmate::assert_class(portfolio, "portfolio")
+  checkmate::assert_data_frame(prices)
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
+  checkmate::assert_choice(target, c("mu", "sd", "yield", "return", "risk", "sharpe", "income"))
+  checkmate::assert_number(amount, lower = 0)
+  checkmate::assert_number(lot_size, lower = 1)
+
+  # Check constraint
+  port <- portfolio
+  cc <- check_constraint(constraint, port)
+  if(! cc$check) {
+    share_amount <- cc$value - cc$min
+
+    total_amount <- get_market_value(portfolio) %>%
+      dplyr::filter(last_updated == max(last_updated)) %>%
+      dplyr::pull(net_value) *
+      abs(share_amount)
+
+    trade_amount <- max(amount, total_amount/max_iter)
+
+    if(share_amount < 0) {
+      tp <- trade_pairs %>%
+        dplyr::filter(buy == cc$args)
+    } else {
+      tp <- trade_pairs %>%
+        dplyr::filter(sell == cc$args)
+    }
+
+    iters <- ceiling(total_amount/trade_amount)
+    for(i in 1:iters) {
+      port <- nbto(
+        pobj = port,
+        cobj = constraints,
+        eobj = estimates,
+        prices = prices,
+        trade_pairs = tp,
+        target = target,
+        minimize = minimize,
+        amount = trade_amount,
+        lot_size = lot_size
+      )
+    }
+  }
+  port
+
+}
+
 
 
 # Cardinality Constraints -------------------------------------------------
@@ -416,13 +589,15 @@ print.cardinality_constraint <- function(constraint) {
   )
 }
 
+
 #' @export
 #' @rdname check_constraint
 check_constraint.cardinality_constraint <- function(constraint, holdings, ...) {
-  checkmate::assert_subset(c("symbol"), colnames(holdings))
-  n <- length(unique(holdings$symbol))
-  check <-
-    ifelse(n < constraint$min | n > constraint$max, FALSE, TRUE)
+  checkmate::assert_subset(c("symbol", "portfolio_share"), colnames(holdings))
+  n <- holdings %>%
+    dplyr::filter(portfolio_share > 0) %>%
+    nrow()
+  check <- ifelse(n < constraint$min | n > constraint$max, FALSE, TRUE)
   data.frame(
     type = constraint$type,
     args = "",
@@ -432,6 +607,63 @@ check_constraint.cardinality_constraint <- function(constraint, holdings, ...) {
     check = check
   )
 }
+
+
+#' @export
+#' @rdname meet_constraint
+meet_constraint.cardinality_constraint <- function(constraint,
+                                                   portfolio,
+                                                   constraints,
+                                                   estimates,
+                                                   prices,
+                                                   trade_pairs,
+                                                   target,
+                                                   minimize,
+                                                   amount,
+                                                   lot_size,
+                                                   max_iter = 5) {
+  checkmate::assert_class(portfolio, "portfolio")
+  checkmate::assert_data_frame(prices)
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
+  checkmate::assert_choice(target, c("mu", "sd", "yield", "return", "risk", "sharpe", "income"))
+  checkmate::assert_number(amount, lower = 0)
+  checkmate::assert_number(lot_size, lower = 1)
+
+  # Check constraint
+  port <- portfolio
+  holdings <- get_symbol_estimates_share(port, estimates)
+  cc <- check_constraint(constraint, holdings)
+  if(! cc$check) {
+
+    if(cc$value > cc$max) {
+      tp <- trade_pairs %>%
+        dplyr::filter(sell %in% unique(port$holdings$symbol))
+      .amount <- max(get_holdings_market_value(port)$market_value)
+    } else {
+      .syms <- setdiff(estimates$symbols, unique(port$holdings$symbol))
+      tp <- trade_pairs %>%
+        dplyr::filter(buy %in% .syms)
+      .amount <- amount
+    }
+
+    port <- nbto(
+      pobj = port,
+      cobj = constraints,
+      eobj = estimates,
+      prices = prices,
+      trade_pairs = tp,
+      target = target,
+      minimize = minimize,
+      amount = .amount,
+      lot_size = lot_size)
+  }
+
+  port
+}
+
+
+
+
 
 
 # Group Constraints -------------------------------------------------------
@@ -518,6 +750,73 @@ check_constraint.group_constraint <- function(constraint, holdings, ...) {
     check = check
   )
 }
+
+
+
+#' @export
+#' @rdname meet_constraint
+meet_constraint.group_constraint <- function(constraint,
+                                             portfolio,
+                                             constraints,
+                                             estimates,
+                                             prices,
+                                             trade_pairs,
+                                             target,
+                                             minimize,
+                                             amount,
+                                             lot_size,
+                                             max_iter = 5) {
+  checkmate::assert_class(portfolio, "portfolio")
+  checkmate::assert_data_frame(prices)
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
+  checkmate::assert_choice(target, c("mu", "sd", "yield", "return", "risk", "sharpe", "income"))
+  checkmate::assert_number(amount, lower = 0)
+  checkmate::assert_number(lot_size, lower = 1)
+
+  # Check constraint
+  port <- portfolio
+  cc <- check_constraint(constraint, port$holdings_market_value)
+  check <- cc$check
+  while(! check) {
+    share_amount <- cc$value - cc$min
+
+    total_amount <- get_market_value(portfolio) %>%
+      dplyr::filter(last_updated == max(last_updated)) %>%
+      dplyr::pull(net_value) *
+      abs(share_amount)
+
+    trade_amount <- max(amount, total_amount/max_iter)
+    syms <- strsplit(as.character(cc$args), ",")[[1]]
+
+    if(share_amount < 0) {
+      tp <- trade_pairs %>%
+        dplyr::filter(buy %in% syms)
+    } else {
+      tp <- trade_pairs %>%
+        dplyr::filter(sell %in% syms)
+    }
+
+      port <- nbto(
+        pobj = port,
+        cobj = constraints,
+        eobj = estimates,
+        prices = prices,
+        trade_pairs = tp,
+        target = target,
+        minimize = minimize,
+        amount = trade_amount,
+        lot_size = lot_size
+      )
+
+      cc <- check_constraint(constraint, port$holdings_market_value)
+      check <- cc$check
+  }
+
+  port
+
+}
+
+
 
 
 # Performance Constraints -------------------------------------------------
@@ -631,3 +930,59 @@ check_constraint.performance_constraint <- function(constraint, stats, ...) {
     check = check
   )
 }
+
+
+
+
+#' @export
+#' @rdname meet_constraint
+meet_constraint.performance_constraint <- function(constraint,
+                                                   portfolio,
+                                                   constraints,
+                                                   estimates,
+                                                   prices,
+                                                   trade_pairs = NULL,
+                                                   target,
+                                                   minimize,
+                                                   amount,
+                                                   lot_size,
+                                                   max_iter = 5) {
+  checkmate::assert_class(portfolio, "portfolio")
+  checkmate::assert_data_frame(prices)
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
+  # checkmate::assert_choice(target, c("mu", "sd", "yield", "return", "risk", "sharpe", "income"))
+  checkmate::assert_number(amount, lower = 0)
+  checkmate::assert_number(lot_size, lower = 1)
+
+  # Check constraint
+  port <- portfolio
+  cc <- check_constraint(constraint, get_estimated_port_stats(port, estimates, TRUE))
+  check <- cc$check
+  target <- as.character(cc$args)
+  tp <- trade_pairs(portfolio, estimates, target) %>%
+    filter(delta > 0)
+  minimize <- ifelse(target %in% c("sd", "risk"), TRUE, FALSE)
+
+  while(! check) {
+
+    port <- nbto(
+      pobj = port,
+      cobj = constraints,
+      eobj = estimates,
+      prices = prices,
+      trade_pairs = tp,
+      target = target,
+      minimize = minimize,
+      amount = amount,
+      lot_size = lot_size
+    )
+
+    cc <- check_constraint(constraint, get_estimated_port_stats(port, estimates, TRUE))
+    check <- cc$check
+  }
+
+  port
+
+}
+
+

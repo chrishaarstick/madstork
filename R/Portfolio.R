@@ -369,10 +369,8 @@ get_income <- function(pobj) {
 #' Calculates market value, income and yield
 #'
 #' @param pobj portfolio object
-#' @param eobj estimates object. Default is NULL. If provided, prices and
-#'   dividends updated from Estimates object
-#' @param refresh logical option to refresh holdings price and dividend data.
-#'   default it TRUE. If TRUE, will override estimates if estimates provided
+#' @param prices data.frame with symbol prices. requires symbol, and price
+#'   columns
 #'
 #' @return data.frame with portfolio's holdings market value
 #' @export
@@ -387,39 +385,21 @@ get_income <- function(pobj) {
 #'  update_holdings_market_value(p1)
 #' }
 #'
-update_holdings_market_value <- function(pobj, eobj = NULL, refresh = TRUE) {
+update_holdings_market_value <- function(pobj, prices = NULL) {
   checkmate::assert_class(pobj, "portfolio")
-  if(! is.null(eobj) ) checkmate::assert_class(eobj, "estimates")
-  checkmate::assert_flag(refresh)
+  checkmate::assert_data_frame(prices, null.ok = TRUE)
   holdings <- get_holdings(pobj)
   symbols <- unique(holdings$symbol)
 
-  if (refresh) {
-    prices <- get_current_prices(symbols)
-    dividends <- get_annual_dividends(symbols) %>%
-      dplyr::select(symbol, dividend = annual_dividend)
-  } else{
-
-    if( is.null(eobj) ) {
-      holdings_mv <- get_holdings_market_value(pobj)
-      prices <- holdings_mv %>%
-        dplyr::distinct(symbol, price, last_updated)
-      dividends <- holdings_mv %>%
-        dplyr::distinct(symbol, dividend)
-    } else {
-      prices <- eobj$prices %>%
-        dplyr::group_by(symbol) %>%
-        dplyr::filter(date == max(date)) %>%
-        dplyr::select(symbol, price, last_updated = date)
-      dividends <- eobj$dividends
-    }
+  if(is.null(prices)) {
+    prices <- get_current_prices(symbols = symbols)
   }
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
+  checkmate::assert_subset(symbols, prices$symbol)
 
   holdings %>%
-    dplyr::select(id, symbol, quantity, price, date_added) %>%
-    dplyr::rename(cost = price) %>%
+    dplyr::select(id, symbol, quantity, cost = price, date_added) %>%
     dplyr::inner_join(prices, by = "symbol") %>%
-    dplyr::inner_join(dividends, by = "symbol") %>%
     dplyr::mutate(
       market_value = quantity * price,
       cost_basis = quantity * cost,
@@ -466,12 +446,11 @@ update_holdings_market_value <- function(pobj, eobj = NULL, refresh = TRUE) {
 #'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
 #'  update_market_value(p1)
 #' }
-update_market_value <- function(pobj, eobj = NULL,refresh = TRUE) {
+update_market_value <- function(pobj, prices = NULL) {
   checkmate::assert_class(pobj, "portfolio")
-  checkmate::assert_flag(refresh)
 
   holdings <- get_holdings(pobj)
-  holdings_market_value <- update_holdings_market_value(pobj, eobj, refresh)
+  holdings_market_value <- update_holdings_market_value(pobj, prices)
 
   current_market_value <- data.frame(
     last_updated = Sys.time(),

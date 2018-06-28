@@ -35,6 +35,12 @@ get_ochlav <- function(symbols,
                        end_date = Sys.Date(),
                        error_handling = "pass",
                        warning = FALSE) {
+  checkmate::assert_character(symbols)
+  checkmate::assert_date(as.Date(start_date))
+  checkmate::assert_date(as.Date(end_date))
+  checkmate::assert_flag(warning)
+  checkmate::assert_choice(error_handling, c("pass", "remove", "stop"))
+
   foreach(
     sym = toupper(symbols),
     .combine = "rbind",
@@ -101,6 +107,8 @@ get_prices <- function(symbols,
 #' timestamp of date pulled
 #'
 #' @inheritParams get_ochlav
+#' @param dividends logical option to add current annual dividend amount to
+#'   output
 #'
 #' @return data.frame with 1 record per symbol with current adjusted close price
 #' @export
@@ -113,9 +121,12 @@ get_prices <- function(symbols,
 #' prices <- symbols %>% get_current_prices(.)
 #' }
 get_current_prices <- function(symbols,
+                               dividends = FALSE,
                                error_handling = "pass",
                                warning = FALSE) {
-  get_prices(
+  checkmate::assert_flag(dividends)
+
+  prices <- get_prices(
     symbols,
     start_date = Sys.Date() - 5,
     end_date = Sys.Date(),
@@ -127,6 +138,15 @@ get_current_prices <- function(symbols,
     dplyr::ungroup() %>%
     dplyr::mutate(last_updated = Sys.time()) %>%
     dplyr::select_at(c("last_updated", "symbol", "price"))
+
+  if(dividends) {
+    prices %>%
+      inner_join(get_annual_dividends(symbols) %>%
+                   dplyr::select(symbol, dividend = annual_dividend),
+                 by = "symbol")
+  }else {
+    prices
+  }
 }
 
 

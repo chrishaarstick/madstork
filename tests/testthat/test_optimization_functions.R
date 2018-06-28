@@ -9,57 +9,153 @@ library(checkmate)
 
 context("Optimization Functionality")
 
+# Set  params
+port_amount <- 100000
+
+# Estimates params
+yrs <- 10
+.symbols <- c("SPY", "QQQ", "TLT", "GLD")
+.grain <- "year"
+.periods <- 1
+
+# Optimization params
+trade_amount <- 2000
+.lot_size <- 1
+.max_runtime <- 30
+.npairs <- 4
+.max_iters <- 10
+.improve_lag <- 10
 
 # Create Estimates Class
-yrs <- 10
-syms <- c("SPY", "QQQ", "TLT", "GLD")
-e1 <- estimates(symbols = syms,
+e1 <- estimates(symbols = .symbols,
                 start_date = Sys.Date() - years(yrs),
                 end_date = Sys.Date(),
-                grain = "year",
-                periods = 1) %>%
+                grain = .grain,
+                periods = .periods) %>%
   add_sample_mu() %>%
   add_sample_sigma() %>%
   add_dividends()
 
+# Prices
+prices <- get_current_prices(.symbols, dividends = TRUE)
+p <- prices %>% split(.$symbol) %>% map("price")
 
 # Create Portfolio
 p1 <- portfolio("new_port", cash=0) %>%
-  make_deposit(amount = 15000) %>%
-  make_buy(symbol = "SPY", quantity = 20, price = 100) %>%
-  make_buy(symbol = "QQQ", quantity = 20, price = 100) %>%
-  make_buy(symbol = "TLT", quantity = 30, price = 100) %>%
-  make_buy(symbol = "GLD", quantity = 20, price = 100) %>%
-  update_market_value()
+  make_deposit(amount = port_amount) %>%
+  make_buy(symbol = "SPY", quantity = 100, price = p$SPY) %>%
+  make_buy(symbol = "QQQ", quantity = 100, price = p$QQQ) %>%
+  make_buy(symbol = "TLT", quantity = 100, price = p$TLT) %>%
+  make_buy(symbol = "GLD", quantity = 100, price = p$GLD) %>%
+  update_market_value(prices)
 
 
-# Create Constraints
-c1 <- constraints(symbols = e1$symbols) %>%
-  add_symbol_constraint(min = .1, max = .5) %>%
-  add_group_constraint(symbols = c("SPY", "QQQ"), max = .5) %>%
-  add_cardinality_constraint(min = 2, max = 4) %>%
-  add_cash_constraint(max = .02) %>%
-  add_min_return(min = .08)
+# Test 1 - Improve Sharpe -------------------------------------------------
+
+test_that("Optimize improves return target", {
+
+  .target <- "return"
+
+  # Create Constraints
+  c1 <- constraints(symbols = e1$symbols) %>%
+    add_symbol_constraint(min = 0.0, max = .5)
+
+  # Create Optimization
+  po <- portfolio_optimization(p1, e1, c1, prices, target =  .target)
+
+  # Optimize
+  po_opt <- madstork::optimize(po,
+                               npairs = .npairs,
+                               amount = trade_amount,
+                               lot_size = .lot_size,
+                               max_iter = .max_iters,
+                               max_runtime = .max_runtime,
+                               improve_lag = .improve_lag,
+                               min_improve = .001,
+                               plot_iter = FALSE)
+
+  top_target <- get_mu(e1) %>%
+    top_n(1, return) %>%
+    pull(symbol)
+
+  expect_gt(
+    po_opt$optimal_portfolio %>%
+      get_estimated_port_values(e1) %>%
+      pull(.target),
+    p1 %>%
+      get_estimated_port_values(e1) %>%
+      pull(.target)
+  )
+  expect_gt(
+    po_opt$optimal_portfolio %>%
+      get_symbol_estimates_share(e1) %>%
+      filter(symbol == top_target) %>%
+      pull(portfolio_share),
+    p1 %>%
+      get_symbol_estimates_share(e1) %>%
+      filter(symbol == top_target) %>%
+      pull(portfolio_share)
+  )
+  expect_lt(
+    po_opt$optimal_portfolio %>%
+      get_cash(),
+    p1 %>% get_cash
+  )
+
+})
 
 
-# Create Optimization
-po1 <- portfolio_optimization(p1, e1, c1, target = "sharpe")
 
-# Optimize
-po1_opt <- madstork::optimize(po1, npairs = 4,
-                              amount = 1000, lot_size = 1,
-                              max_iter = 15, max_runtime = 120,
-                              improve_lag = 10, min_improve = .001)
+# Test 2 - Improves Symbol Constraints ------------------------------------
+
+test_that("Improves Failed Symbol Constraints", {
+
+  # Create Constraints
+  c2 <- constraints(symbols = e1$symbols) %>%
+    add_symbol_constraint(symbol = "SPY", min = 0.3, max = .4) %>%
+    add_symbol_constraint(symbol = "QQQ", min = 0.2, max = .3) %>%
+    add_symbol_constraint(symbol = "TLT", min = 0.10, max = .2) %>%
+    add_symbol_constraint(symbol = "GLD", min = 0.0, max = .1)
+
+  # Create Optimization
+  po <- portfolio_optimization(p1, e1, c2, prices, target = "sharpe")
+
+  # Optimize
+  po_opt <- madstork::optimize(po,
+                               npairs = .npairs,
+                               amount = trade_amount,
+                               lot_size = .lot_size,
+                               max_iter = .max_iters,
+                               max_runtime = .max_runtime,
+                               improve_lag = .improve_lag,
+                               min_improve = .001,
+                               plot_iter = FALSE)
+  p1_shares <- p1 %>%
+    get_symbol_estimates_share(e1) %>%
+    split(.$symbol) %>%
+    map("portfolio_share")
+  po_opt_shares <- po_opt$optimal_portfolio %>%
+    get_symbol_estimates_share(e1) %>%
+    split(.$symbol) %>%
+    map("portfolio_share")
+  expect_gt(po_opt_shares$SPY, p1_shares$SPY)
+  expect_gt(po_opt_shares$QQQ, p1_shares$QQQ)
+  expect_lt(po_opt_shares$GLD, p1_shares$GLD)
+
+  po_opt_cc <- check_constraints(c2, po_opt$optimal_portfolio, e1 )
+  expect_true(all(po_opt_cc$check))
+})
+
 
 
 # Create Constraints
 c2 <- constraints(symbols = e1$symbols) %>%
   add_symbol_constraint(min = .0, max = .5)
 
-po2 <- portfolio_optimization(p1, e1, c2, target = "return")
+po2 <- portfolio_optimization(p1, e1, c2, prices, target = "return")
 
 # Optimize
-po2_opt <- madstork::optimize(po2, npairs = 4, amount = 1000, lot_size = 1,
+po2_opt <- madstork::optimize(po2, npairs = 4, amount = 2000, lot_size = 1,
                               max_iter = 25, max_runtime = 120,
                               improve_lag = 5, min_improve = .001)
 
@@ -83,7 +179,7 @@ c3 <- constraints(symbols = e1$symbols) %>%
 
 
 # Create Optimization
-po3 <- portfolio_optimization(p3, e1, c3, target = "sharpe")
+po3 <- portfolio_optimization(p3, e1, c3, prices, target = "sharpe")
 
 # Optimize
 po3_opt <- madstork::optimize(po3, npairs = 4,
@@ -92,22 +188,5 @@ po3_opt <- madstork::optimize(po3, npairs = 4,
                               improve_lag = 10, min_improve = .001)
 
 
-purrr::map_df(po3_opt$portfolios,
-              ~get_symbol_estimates_share(pobj = ., eobj = po3_opt$estimates), .id = "iter") %>%
-  ggplot(., aes(x=as.numeric(iter), y=portfolio_share, color = symbol, group=symbol)) +
-  geom_line() +
-  scale_color_madstork() +
-  scale_y_continuous(labels = scales::percent) +
-  theme_minimal()
 
-
-purrr::map_df(obj$portfolios,
-              ~check_constraints(c1, ., e1), .id = "iter") %>%
-  ggplot(., aes(x=as.numeric(iter), y=value, group=args)) +
-  geom_ribbon(aes(ymin = min, max = ifelse(max == Inf, value, max)), color="grey75", alpha=.25) +
-  geom_line(color = "blue") +
-  geom_point(size = 2, shape=1, color ="blue") +
-  facet_wrap(~type+args, scales = "free") +
-  scale_color_madstork() +
-  theme_minimal()
 

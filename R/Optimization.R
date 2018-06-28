@@ -5,15 +5,26 @@
 portfolio_optimization <- function(portfolio,
                                    estimates,
                                    constraints,
+                                   prices = NULL,
                                    target,
                                    desc = "",
                                    version = 1.0) {
   checkmate::assert_class(portfolio, "portfolio")
   checkmate::assert_class(estimates, "estimates")
   checkmate::assert_class(constraints, "constraints")
+  checkmate::assert_data_frame(prices, null.ok = TRUE)
   checkmate::assert_choice(target, c("mu", "sd", "yield", "return", "risk", "sharpe", "income"))
   checkmate::assert_character(desc)
   checkmate::assert_number(version)
+
+  # Check symbols
+  symbols <- estimates$symbols
+  checkmate::assert_subset(unique(portfolio$holdings$symbol), symbols)
+
+  if(is.null(prices)) {
+    prices <- get_current_prices(symbols = symbols)
+  }
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
 
   criteria <- ifelse(target %in% c("sd"), "minimize", "maximize")
   tp <- trade_pairs(portfolio, estimates, target)
@@ -26,6 +37,7 @@ portfolio_optimization <- function(portfolio,
       optimal_portfolio = portfolio,
       estimates = estimates,
       constraints = constraints,
+      prices = prices,
       target = target,
       criteria = criteria,
       trade_pairs = tp,
@@ -41,7 +53,7 @@ portfolio_optimization <- function(portfolio,
 
 
 
-# NMTO --------------------------------------------------------------------
+# NBTO --------------------------------------------------------------------
 
 
 get_sell_trades <- function(pobj,
@@ -100,6 +112,34 @@ get_sell_trades <- function(pobj,
 
 get_buy_trades <- function(obj, symbols, amount, lot_size) {
   UseMethod("get_buy_trades")
+}
+
+
+get_buy_trades.data.frame <- function(obj,
+                                      symbols = NULL,
+                                      amount,
+                                      lot_size = 1) {
+  checkmate::assert_character(symbols, null.ok = TRUE)
+  checkmate::assert_subset(c("symbol","price"), colnames(obj))
+  checkmate::assert_number(amount, lower = 0)
+  checkmate::assert_number(lot_size, lower = 0)
+
+  if( is.null(symbols)) {
+    symbols <- obj$symbols
+  } else {
+    checkmate::assert_subset(symbols, obj$symbol)
+  }
+
+  buys <- data.frame()
+  for(sym in symbols) {
+    price <- obj %>%
+      dplyr::filter(symbol == sym) %>%
+      .$price
+    quantity <- amount %/% (price * lot_size) * lot_size
+    b1 <- buy(date = Sys.Date(), symbol = sym, quantity = quantity, price = price)
+    buys <- rbind(buys, as.data.frame(b1))
+  }
+  buys
 }
 
 
@@ -203,7 +243,7 @@ trade_pairs <- function(portfolio, estimates, target){
     dplyr::mutate(delta = buy_target - sell_target,
                   selected = 0,
                   trades   = 0,
-                  active = ifelse(delta > 0, TRUE, FALSE)) %>%
+                  active = TRUE) %>%
     dplyr::arrange(-delta)
 }
 
@@ -212,59 +252,59 @@ trade_pairs <- function(portfolio, estimates, target){
 execute_trade_pair <- function(buy,
                                sell,
                                portfolio,
-                               estimates,
+                               prices,
                                amount,
-                               lot_size = 1,
-                               refresh = FALSE) {
-  p2 <- portfolio
+                               lot_size = 1) {
+  port <- portfolio
   if (sell != "CASH") {
-    sells <-
-      get_sell_trades(p2, as.character(sell), amount, lot_size)
+    sells <- get_sell_trades(port, as.character(sell), amount, lot_size)
     for (i in 1:nrow(sells)) {
       sell <- sells[i, ]
-      p2 <-
-        make_sell(
-          p2,
-          id = sell$id,
-          quantity = sell$quantity,
-          price = sell$price
-        )
+      port <- make_sell(
+        port,
+        id = sell$id,
+        quantity = sell$quantity,
+        price = sell$price
+      )
     }
-    p2 <- update_market_value(p2, estimates, refresh = refresh)
+    port <- update_market_value(port, prices)
   }
 
-  amount <- min(amount, p2$cash)
-  buy <-
-    get_buy_trades(estimates, as.character(buy), amount, lot_size)
-  p2 <-
-    make_buy(
-      p2,
+  if(buy != "CASH") {
+    amount <- min(amount, port$cash)
+    buy <- get_buy_trades(prices, as.character(buy), amount, lot_size)
+    port <- make_buy(
+      port,
       symbol = as.character(buy$symbol),
       quantity = buy$quantity,
       price = buy$price
     )
 
-  update_market_value(p2, estimates, refresh)
+    port <- update_market_value(port, prices)
+  }
+
+  port
 }
 
 
-evaluate_constraints <- function(portfolio1, portfolio2, constraints, estimates){
+evaluate_constraints <- function(pobj1, pobj2, cobj, eobj){
 
-  cc1 <- check_constraints(constraints, portfolio1, estimates)
+  cc1 <- check_constraints(cobj, pobj1, eobj)
 
   # Constraints Evaluation
   if(! all(cc1$check))  {
 
     # compare new constraints to intial state
-    cc_eval <- check_constraints(constraints, portfolio2, estimates) %>%
+    cc_eval <- check_constraints(cobj, pobj2, eobj) %>%
       select(id, old_value = value) %>%
       dplyr::inner_join(cc1, by = "id") %>%
+      dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
       dplyr::mutate(
         improve = check,
         improve = ifelse(!improve &
-                           old_value < min & value > old_value, TRUE, improve),
+                           old_value < min & value >= old_value, TRUE, improve),
         improve = ifelse(!improve &
-                           old_value > max & value < old_value, TRUE, improve)
+                           old_value > max & value <= old_value, TRUE, improve)
       )
 
     if(! all(cc_eval$improve)) {
@@ -282,6 +322,30 @@ evaluate_constraints <- function(portfolio1, portfolio2, constraints, estimates)
 }
 
 
+#' Compare Constriant Checks for two portfolios
+#'
+#' Function used to evaluate new portfolio to see if constraints improved upon
+compare_constraints <- function(pobj1, pobj2, cobj, eobj){
+  checkmate::assert_class(pobj1, "portfolio")
+  checkmate::assert_class(pobj2, "portfolio")
+  checkmate::assert_class(cobj, "constraints")
+  checkmate::assert_class(eobj, "estimates")
+
+  # compare new constraints to intial state
+  check_constraints(cobj, pobj2, eobj) %>%
+    select(id, old_value = value) %>%
+    dplyr::inner_join(check_constraints(cobj, pobj1, eobj), by = "id") %>%
+    dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
+    dplyr::mutate(
+      improve = check,
+      improve = ifelse(!improve &
+                         old_value < min & value >= old_value, TRUE, improve),
+      improve = ifelse(!improve &
+                         old_value > max & value <= old_value, TRUE, improve)
+    )
+}
+
+
 select_optimal_portfolio <- function(portfolios, estimates, target, criteria) {
   checkmate::assert_list(portfolios)
   checkmate::assert_class(estimates, "estimates")
@@ -296,6 +360,181 @@ select_optimal_portfolio <- function(portfolios, estimates, target, criteria) {
     dplyr::top_n(ifelse(criteria == "minimize", -1, 1), !!rlang::sym(target)) %>%
     .$id %>%
     portfolios[[.]]
+}
+
+
+#' Meet Symbol Constraints
+#'
+#' Updates portfolio to meet symbol constraints
+meet_symbol_constraints <- function(pobj, cobj, eobj, amount, lot_size = 1){
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(cobj, "constraints")
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_character(purrr::map_chr(cobj$constraints, "type"), min.len = 1)
+
+  # failed symbol constaints
+  sym_fc <- check_constraints(cobj, pobj, eobj) %>%
+    dplyr::filter(type == "symbol" & (! check))
+  nsym_fc <- nrow(sym_fc)
+  port <- pobj
+
+  if(nsym_fc > 0) {
+    prices <- eobj$prices %>%
+      dplyr::filter(date == max(date)) %>%
+      split(.symbols) %>%
+      purrr::map("price")
+
+    for(i in 1:nsym_fc) {
+      min_diff <- sym_fc$value[i] - sym_fc$min[i]
+      port_value <- get_market_value(port) %>%
+        dplyr::filter(last_updated == max(last_updated)) %>%
+        dplyr::pull(net_value)
+      .sym <- as.character(sym_fc$args[i])
+      if(min_diff < 0) {
+        # Buy
+        .amount <- abs(min_diff) * port_value
+        .amount <- ceiling(.amount/prices[[.sym]]) * prices[[.sym]]
+        port <- execute_trade_pair(buy = .sym,
+                                   sell = "CASH",
+                                   portfolio = port,
+                                   prices = obj$prices,
+                                   amount = amount,
+                                   lot_size = lot_size)
+      } else {
+        # Sell
+        .amount <- (sym_fc$value[i] - sym_fc$max[i]) * port_value
+        .amount <- ceiling(.amount/prices[[.sym]]) * prices[[.sym]]
+        port <- execute_trade_pair(buy = "CASH",
+                                   sell = .sym,
+                                   portfolio = port,
+                                   prices = obj$prices,
+                                   amount = amount,
+                                   lot_size = lot_size)
+      }
+    }
+  }
+
+  port
+}
+
+
+meet_group_constraints <- function(pobj,
+                                   cobj,
+                                   eobj,
+                                   tp,
+                                   target,
+                                   amount,
+                                   lot_size = 1,
+                                   max_iter = 10,
+                                   plot_iter = FALSE) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(cobj, "constraints")
+  checkmate::assert_class(eobj, "estimates")
+  checkmate::assert_character(purrr::map_chr(cobj$constraints, "type"), min.len = 1)
+  checkmate::assert_number(amount, lower = 0)
+  checkmate::assert_number(lot_size, lower = 0)
+  checkmate::assert_logical(plot_iter)
+
+  # failed group constaints
+  grp_fc <- check_constraints(cobj, pobj, eobj) %>%
+    dplyr::filter(type == "group" & (!check))
+  ngrp_fc <- nrow(grp_fc)
+  port <- pobj
+
+  if (ngrp_fc > 0) {
+    prices <- eobj$prices %>%
+      dplyr::filter(date == max(date)) %>%
+      split(.symbols) %>%
+      purrr::map("price")
+    grp_fc <-
+      dplyr::mutate(grp_fc, action = ifelse(value < min, "buy", "sell"))
+
+    for (i in 1:ngrp_fc) {
+      val_diff <- ifelse(
+        grp_fc$action[i] == "sell",
+        grp_fc$value[i] - grp_fc$max[i],
+        grp_fc$min[i] - grp_fc$value[i]
+      )
+      port_value <- get_market_value(port) %>%
+        dplyr::filter(last_updated == max(last_updated)) %>%
+        dplyr::pull(net_value)
+      .syms <- strsplit(as.character(grp_fc$args[i]), ",")[[1]]
+      .tp <- if (grp_fc$action[i] == "sell") {
+        tp %>% dplyr::filter(sell %in% .syms & (! buy %in% .syms) )
+      } else {
+        tp %>% dplyr::filter(buy %in% .syms & (! sell %in% .syms))
+      }
+      continue <- TRUE
+      while(continue) {
+       port <- nbto(port, cobj, eobj, .tp, target)
+      }
+    }
+  }
+}
+
+
+
+#' Initial Next Best Trade Optimization sub function
+nbto <- function(pobj,
+                 cobj,
+                 eobj,
+                 prices,
+                 trade_pairs,
+                 target,
+                 minimize,
+                 amount,
+                 lot_size) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(cobj, "constraints")
+  checkmate::assert_class(eobj, "estimates")
+
+
+  # Create Canidate Portfolios
+  port_canidates <- trade_pairs %>%
+    split(.$id) %>%
+    purrr::map(~ execute_trade_pair(.$buy,
+                                    .$sell,
+                                    pobj,
+                                    prices,
+                                    amount,
+                                    lot_size))
+
+  # Check Canidates Constraints
+  port_evals <- port_canidates %>%
+    purrr::map( ~ check_constraints(cobj, ., eobj)) %>%
+    purrr::map_lgl( ~ all(.$check))
+
+  # Only select canidates that meet constraints
+  port_eval_list <- purrr::keep(port_canidates, port_evals)
+
+  # Select optimal portfolio
+  if (length(port_eval_list) > 0) {
+
+    if(target %in% c("mu", "sd", "sharpe", "yield")) {
+      opt_ports <- port_eval_list %>%
+        purrr::map_df(.,
+                      get_estimated_port_stats,
+                      eobj = eobj,
+                      port_only = TRUE,
+                      .id = "id")
+    } else {
+      opt_ports <- port_eval_list %>%
+        purrr::map_df(.,
+                      get_estimated_port_values,
+                      eobj = eobj,
+                      .id = "id")
+    }
+
+    opt_port_id <- opt_ports %>%
+      dplyr::top_n(ifelse(minimize, -1, 1),
+                   !!rlang::sym(target)) %>%
+      .$id %>%
+      head(1)
+
+    port_eval_list[opt_port_id][[1]]
+  } else {
+    pobj
+  }
 }
 
 
@@ -321,11 +560,30 @@ optimize <- function(obj,
   checkmate::assert_number(min_improve, lower = 0)
   checkmate::assert_logical(plot_iter)
 
+  # Set up
   i <- 0
   continue <- TRUE
   all_active <- FALSE
   prev_iter <- max(obj$portfolio_values$iter)
   t1 <- Sys.time()
+
+  # Check Symbol Constraints
+  sym_cc <- check_constraints(obj$constraints, obj$optimal_portfolio, obj$estimates) %>%
+    dplyr::filter(type == "symbol" & (! check))
+  if(nrow(sym_cc) > 0) {
+    port <- meet_symbol_constraints(obj$optimal_portfolio, obj$constraints, obj$estimates, lot_size)
+
+     # Update Obj
+    obj$optimal_portfolio <- port
+    obj$portfolios <- c(obj$portfolios, list(port))
+    obj$portfolio_values <- obj$portfolio_values %>% rbind(
+      get_estimated_port_values(port, obj$estimates) %>%
+        dplyr::mutate(iter = i + prev_iter)
+    )
+    prev_iter <- prev_iter + 1
+  }
+
+
   while (continue) {
     i <- i+1
 
@@ -352,8 +610,9 @@ optimize <- function(obj,
           .$buy,
           .$sell,
           obj$optimal_portfolio,
-          obj$estimates,
-          amount
+          obj$prices,
+          amount,
+          lot_size
         )
       )
 
@@ -395,20 +654,30 @@ optimize <- function(obj,
         head(1)
       opt_port <- port_eval_list[[opt_port_id]]
     } else {
+      opt_port_id <- 0
       opt_port <- obj$optimal_portfolio
     }
 
     # Update Trade Pairs
-    obj$trade_pairs <-
-      data.frame(id = as.numeric(names(active_trades)),
-                 active = active_trades) %>%
-      dplyr::mutate(n = 1) %>%
-      dplyr::right_join(obj$trade_pairs, by = c("id")) %>%
-      tidyr::replace_na(list(n = 0)) %>%
-      dplyr::mutate(selected = selected + n) %>%
-      dplyr::mutate(active = ifelse(is.na(active.x), active.y, active.x)) %>%
-      dplyr::mutate(trades = ifelse(id == as.numeric(opt_port_id), trades + 1, trades)) %>%
-      dplyr::select(-n,-active.x,-active.y)
+    if(as.numeric(opt_port_id) == 0) {
+      obj$trade_pairs <- obj$trade_pairs %>%
+        mutate(selected = ifelse(id %in% as.numeric(names(active_trades)), selected + 1, selected))
+    } else {
+      obj$trade_pairs <- obj$trade_pairs %>%
+        left_join(
+          data.frame(id = as.numeric(names(active_trades)),
+                     active = active_trades) %>%
+            dplyr::mutate(s = 1, t = ifelse(id == as.numeric(opt_port_id), 1, 0)),
+          by = "id"
+        ) %>%
+        tidyr::replace_na(list(s = 0, t = 0)) %>%
+        dplyr::mutate(selected = selected + s,
+                      trades = trades + t) %>%
+        dplyr::mutate(active = ifelse(is.na(active.x), active.y, active.x)) %>%
+        dplyr::mutate(active = ifelse(buy == sell[t==1] & buy != "CASH", FALSE, active)) %>%
+        dplyr::mutate(active = ifelse(sell == buy[t==1] & sell != "CASH", FALSE, active)) %>%
+        dplyr::select(-s,-t, -active.x, -active.y)
+    }
 
     # Update Obj
     obj$optimal_portfolio <- opt_port
@@ -417,15 +686,16 @@ optimize <- function(obj,
       get_estimated_port_values(opt_port, obj$estimates) %>%
         dplyr::mutate(iter = i + prev_iter)
     )
-    if (!opt_check & !is.na(cand_checks[opt_port_id])) {
-      if (cand_checks[opt_port_id]) {
-        all_active <- TRUE
-      } else {
-        all_active <- FALSE
-      }
-    } else {
-      all_active <- FALSE
-    }
+    # if (!opt_check & !is.na(cand_checks[opt_port_id])) {
+    #   if (cand_checks[opt_port_id]) {
+    #    # all_active <- TRUE
+    #     all_active <- FALSE
+    #   } else {
+    #     all_active <- FALSE
+    #   }
+    # } else {
+    #   all_active <- FALSE
+    # }
 
     if(plot_iter) {
       print(ggplot(obj$portfolio_values, aes_string(x='iter', y=obj$target)) +
@@ -470,10 +740,12 @@ optimize <- function(obj,
     dplyr::mutate(amount = price * quantity)
   final_port <- obj$portfolios[[1]]
   for (.id in new_sells$id) {
-    sell <- dplyr::filter(new_sells, id == .id)
+    sell <- dplyr::filter(new_sells, id == .id) %>%
+      do(get_sell_trades(obj$portfolios[[1]], as.character(.$symbol), .$amount, lot_size))
+
     final_port <- final_port %>%
       make_sell(
-        id = .id,
+        id = sell$id,
         quantity = sell$quantity,
         price = sell$price,
         desc = as.character(sell$desc)
@@ -489,7 +761,40 @@ optimize <- function(obj,
         desc = as.character(buy$desc)
       )
   }
-  obj$optimal_portfolio <- update_market_value(final_port, eobj = obj$estimates, refresh = FALSE)
+  obj$optimal_portfolio <- update_market_value(final_port, obj$prices)
 
   obj
+}
+
+
+
+# Optimization Report Functions -------------------------------------------
+
+
+po_symbol_share_chart <- function(obj) {
+
+  purrr::map_df(obj$portfolios,
+                ~get_symbol_estimates_share(pobj = ., eobj = obj$estimates), .id = "iter") %>%
+    ggplot(., aes(x=as.numeric(iter), y=portfolio_share, color = symbol, group=symbol)) +
+    geom_line() +
+    scale_color_madstork() +
+    scale_y_continuous(labels = scales::percent) +
+    theme_minimal() +
+    labs(title = "Next Best Trade Optimization",
+         subtitle = "Portfolio Symbol Share Path",
+         caption = "MadStork ")
+}
+
+
+po_constraints_charts <- function(obj) {
+
+  purrr::map_df(obj$portfolios,
+                ~check_constraints(obj$constraints, ., obj$estimates), .id = "iter") %>%
+    ggplot(., aes(x=as.numeric(iter), y=value, group=args)) +
+    geom_ribbon(aes(ymin = min, max = ifelse(max == Inf, value, max)), color="grey75", alpha=.25) +
+    geom_line(color = "blue") +
+    geom_point(size = 2, shape=1, color ="blue") +
+    facet_wrap(~type+args, scales = "free") +
+    scale_color_madstork() +
+    theme_minimal()
 }

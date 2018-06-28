@@ -299,7 +299,7 @@ get_estimates_stats <- function(eobj) {
       by = "symbol"
     ) %>%
     dplyr::mutate(sharpe = return/sd) %>%
-    dplyr::select(symbol, return, sd, sharpe, yield = dividend)
+    dplyr::select(symbol, mu = return, sd, sharpe, yield = dividend)
 }
 
 
