@@ -27,7 +27,10 @@ portfolio_optimization <- function(portfolio,
   checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
 
   criteria <- ifelse(target %in% c("sd"), "minimize", "maximize")
-  tp <- trade_pairs(portfolio, estimates, target)
+  .target <- ifelse(target == "return", "mu",
+                    ifelse(target == "risk", "sd",
+                           ifelse(target == "income", "yield", target)))
+  tp <- trade_pairs(portfolio, estimates, .target)
   port_values <- get_estimated_port_values(portfolio, estimates) %>%
     dplyr::mutate(iter = 0)
 
@@ -221,7 +224,7 @@ get_buy_trades.character <- function(obj,
 trade_pairs <- function(portfolio, estimates, target){
   checkmate::assert_class(portfolio, "portfolio")
   checkmate::assert_class(estimates, "estimates")
-  checkmate::assert_choice(target, c("mu", "sd", "sharpe", "yield", "return", "risk", "income"))
+  checkmate::assert_choice(target, c("mu", "sd", "sharpe", "yield"))
 
   est_stats <- get_estimates_stats(estimates) %>%
     dplyr::select_at(c("symbol", target))
@@ -560,18 +563,23 @@ optimize <- function(obj,
   checkmate::assert_number(min_improve, lower = 0)
   checkmate::assert_logical(plot_iter)
 
-  # Set up
-  i <- 0
-  continue <- TRUE
-  all_active <- FALSE
-  prev_iter <- max(obj$portfolio_values$iter)
-  t1 <- Sys.time()
 
-  # Check Symbol Constraints
-  sym_cc <- check_constraints(obj$constraints, obj$optimal_portfolio, obj$estimates) %>%
-    dplyr::filter(type == "symbol" & (! check))
-  if(nrow(sym_cc) > 0) {
-    port <- meet_symbol_constraints(obj$optimal_portfolio, obj$constraints, obj$estimates, lot_size)
+  # Meet Constraints
+  n_constraints <- length(obj$constraints$constraints)
+  for(n in n_constraints) {
+    n_idx <- ifelse(n == 1, 0, 1:(n - 1))
+
+    # Meet constraint
+    constraint <- filter_constraints(obj$constraints, n)[[1]]
+    port <- meet_constraints(constraint,
+                             obj$optimal_portfolio,
+                             filter_constraints(obj$constraints, n_idx),
+                             obj$estimates,
+                             obj$prices,
+                             obj$trade_pairs,
+                             obj$target,
+                             amount,
+                             lot_size)
 
      # Update Obj
     obj$optimal_portfolio <- port
@@ -580,14 +588,16 @@ optimize <- function(obj,
       get_estimated_port_values(port, obj$estimates) %>%
         dplyr::mutate(iter = i + prev_iter)
     )
-    prev_iter <- prev_iter + 1
   }
 
+  # Set up NBTO target optimization
+  i <- 0
+  continue <- TRUE
+  prev_iter <- max(obj$portfolio_values$iter)
+  t1 <- Sys.time()
 
   while (continue) {
     i <- i+1
-
-    if(all_active) obj$trade_pairs$active <- TRUE
 
     # Trade pair samples
     tp_actives <- obj$trade_pairs %>%

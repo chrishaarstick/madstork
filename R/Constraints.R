@@ -97,7 +97,7 @@ filter_constraints <- function(constraints, index) {
   checkmate::assert_class(constraints, "constraints")
   checkmate::assert_numeric(index, lower = 0, upper = length(constraints$constraints))
 
-  if(index == 0){
+  if(max(index) == 0){
     constraints_list <- list()
   } else {
     constraints_list <- constraints$constraints[index]

@@ -77,7 +77,7 @@ test_that("Meet Constraints optimization meets all buy symbol constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 5)
+                          max_iter = 2)
   cc1.1 <- check_constraints(c1.1, p1.1, e1)
   expect_true(cc1.1$check[1])
 
@@ -92,7 +92,7 @@ test_that("Meet Constraints optimization meets all buy symbol constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 5)
+                          max_iter = 2)
   cc1.2 <- check_constraints(c1.2, p1.2, e1)
   expect_true(cc1.2$check[1])
 
@@ -107,7 +107,7 @@ test_that("Meet Constraints optimization meets all buy symbol constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 5)
+                          max_iter = 2)
   cc1.3 <- check_constraints(c1.3, p1.3, e1)
   expect_true(cc1.3$check[1])
 
@@ -123,7 +123,7 @@ test_that("Meet Constraints optimization meets all buy symbol constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 5)
+                          max_iter = 2)
   cc1.4 <- check_constraints(c1.4, p1.4, e1)
   expect_true(cc1.4$check[1])
 
@@ -154,7 +154,7 @@ test_that("Meet Constraints optimization meets sell symbol constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 1)
+                          max_iter = 2)
   cc2.1 <- check_constraints(c2.1, p2.1, e1)
   expect_true(cc2.1$check[1])
 
@@ -185,7 +185,7 @@ test_that("Meet Constraints optimization meets cash constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 1)
+                          max_iter = 2)
   cc3.1 <- check_constraints(c3.1, p3.1, e1)
   expect_true(cc3.1$check[1])
 
@@ -216,7 +216,7 @@ test_that("Meet Constraints optimization meets cardinality constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 1)
+                          max_iter = 2)
   cc4.1 <- check_constraints(c4, p4.1, e1)
   expect_true(cc4.1$check[1])
 
@@ -234,7 +234,7 @@ test_that("Meet Constraints optimization meets cardinality constrainsts", {
                            minimize = FALSE,
                            amount = trade_amount,
                            lot_size = .lot_size,
-                           max_iter = 1)
+                           max_iter = 2)
   cc4a.1 <- check_constraints(c4a, p4a.1, e1)
   expect_true(cc4a.1$check[1])
 })
@@ -264,7 +264,7 @@ test_that("Meet Constraints optimization meets group constrainsts", {
                           minimize = FALSE,
                           amount = trade_amount,
                           lot_size = .lot_size,
-                          max_iter = 1)
+                          max_iter = 2)
   cc5.1 <- check_constraints(c5, p5.1, e1)
   expect_true(cc5.1$check[1])
 
@@ -284,7 +284,7 @@ test_that("Meet Constraints optimization meets performance constrainsts", {
   # Create Optimization
   po <- portfolio_optimization(p1, e1, c6, prices, target = .target)
 
-  # Meet Cardinality
+  # Meet performance
   c6.1 <- filter_constraints(c6, 1)
   p6.1 <- meet_constraint(c6.1$constraints[[1]],
                           portfolio = p1,
@@ -309,7 +309,7 @@ test_that("Meet Constraints optimization meets performance constrainsts", {
   # Create Optimization
   po <- portfolio_optimization(p1, e1, c6a, prices, target = .target)
 
-  # Meet Cardinality
+  # Meet performance
   c6a.1 <- filter_constraints(c6a, 1)
   p6a.1 <- meet_constraint(c6a.1$constraints[[1]],
                           portfolio = p1,
