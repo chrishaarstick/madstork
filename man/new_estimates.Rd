@@ -5,7 +5,7 @@
 \title{Estimates Class Constructer function}
 \usage{
 new_estimates(symbols, start_date, end_date, grain, periods, prices, returns,
-  mu, sigma)
+  mu, sigma, dividends)
 }
 \arguments{
 \item{symbols}{vector of security symbols}
@@ -24,7 +24,9 @@ new_estimates(symbols, start_date, end_date, grain, periods, prices, returns,
 
 \item{mu}{optional input for mean estimates}
 
-\item{sigma}{optional input for sigma estimate}
+\item{sigma}{optional input for sigma estimates}
+
+\item{dividends}{optional input for dividend estimates}
 }
 \value{
 estimates object

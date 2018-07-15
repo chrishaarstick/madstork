@@ -237,6 +237,25 @@ test_that("Meet Constraints optimization meets cardinality constrainsts", {
                            max_iter = 2)
   cc4a.1 <- check_constraints(c4a, p4a.1, e1)
   expect_true(cc4a.1$check[1])
+
+
+  c4b <-  constraints(symbols = e1$symbols) %>%
+    add_cardinality_constraint(min = 1, max = 2)
+
+  c4b.1 <- filter_constraints(c4b, 1)
+  p4b.1 <- meet_constraint(c4b.1$constraints[[1]],
+                           portfolio = p1,
+                           constraints = filter_constraints(c4b, 0),
+                           estimates = e1,
+                           prices = prices,
+                           trade_pairs = po$trade_pairs,
+                           target = .target,
+                           minimize = FALSE,
+                           amount = trade_amount,
+                           lot_size = .lot_size,
+                           max_iter = 2)
+  cc4b.1 <- check_constraints(c4b, p4b.1, e1)
+  expect_true(cc4b.1$check[1])
 })
 
 
@@ -262,9 +281,9 @@ test_that("Meet Constraints optimization meets group constrainsts", {
                           trade_pairs = po$trade_pairs,
                           target = .target,
                           minimize = FALSE,
-                          amount = trade_amount,
+                          amount = trade_amount * 2,
                           lot_size = .lot_size,
-                          max_iter = 2)
+                          max_iter = 4)
   cc5.1 <- check_constraints(c5, p5.1, e1)
   expect_true(cc5.1$check[1])
 
@@ -304,7 +323,7 @@ test_that("Meet Constraints optimization meets performance constrainsts", {
 
   # Create Constraints
   c6a <- constraints(symbols = e1$symbols) %>%
-    add_min_return(min = .08)
+    add_min_return(min = .06)
 
   # Create Optimization
   po <- portfolio_optimization(p1, e1, c6a, prices, target = .target)
@@ -312,16 +331,16 @@ test_that("Meet Constraints optimization meets performance constrainsts", {
   # Meet performance
   c6a.1 <- filter_constraints(c6a, 1)
   p6a.1 <- meet_constraint(c6a.1$constraints[[1]],
-                          portfolio = p1,
-                          constraints = filter_constraints(c6a, 0),
-                          estimates = e1,
-                          prices = prices,
-                          trade_pairs = NULL,
-                          target = .target,
-                          minimize = FALSE,
-                          amount = trade_amount,
-                          lot_size = .lot_size,
-                          max_iter = 1)
+                           portfolio = p1,
+                           constraints = filter_constraints(c6a, 0),
+                           estimates = e1,
+                           prices = prices,
+                           trade_pairs = NULL,
+                           target = .target,
+                           minimize = FALSE,
+                           amount = trade_amount,
+                           lot_size = .lot_size,
+                           max_iter = 5)
   cc6a.1 <- check_constraints(c6a, p6a.1, e1)
   expect_true(cc6a.1$check[1])
 })

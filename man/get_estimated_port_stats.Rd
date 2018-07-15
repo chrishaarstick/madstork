@@ -4,12 +4,14 @@
 \alias{get_estimated_port_stats}
 \title{Get Estimated Porfolio Stats}
 \usage{
-get_estimated_port_stats(pobj, eobj)
+get_estimated_port_stats(pobj, eobj, port_only = FALSE)
 }
 \arguments{
 \item{pobj}{portfolio object}
 
 \item{eobj}{estimates object}
+
+\item{port_only}{logical option to return only portfolio levels stats}
 }
 \value{
 tibble with estimate stats for portfolio and investments only

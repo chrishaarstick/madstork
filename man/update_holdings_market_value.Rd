@@ -4,13 +4,13 @@
 \alias{update_holdings_market_value}
 \title{Updated Porfolio Holding's Market Value}
 \usage{
-update_holdings_market_value(pobj, refresh = TRUE)
+update_holdings_market_value(pobj, prices = NULL)
 }
 \arguments{
 \item{pobj}{portfolio object}
 
-\item{refresh}{logical option to refresh holdings price and dividend data.
-default it TRUE}
+\item{prices}{data.frame with symbol prices. requires symbol, and price
+columns}
 }
 \value{
 data.frame with portfolio's holdings market value

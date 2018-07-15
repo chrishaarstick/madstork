@@ -3,14 +3,18 @@
 \name{check_constraint}
 \alias{check_constraint}
 \alias{check_constraint.symbol_constraint}
+\alias{check_constraint.cash_constraint}
 \alias{check_constraint.cardinality_constraint}
 \alias{check_constraint.group_constraint}
 \alias{check_constraint.performance_constraint}
 \title{Check Constraint}
 \usage{
-check_constraint(constraint, holdings = NULL, stats = NULL)
+check_constraint(constraint, portfolio = NULL, holdings = NULL,
+  stats = NULL)
 
 \method{check_constraint}{symbol_constraint}(constraint, holdings, ...)
+
+\method{check_constraint}{cash_constraint}(constraint, portfolio, ...)
 
 \method{check_constraint}{cardinality_constraint}(constraint, holdings, ...)
 
@@ -20,6 +24,8 @@ check_constraint(constraint, holdings = NULL, stats = NULL)
 }
 \arguments{
 \item{constraint}{constraint object}
+
+\item{portfolio}{portfolio object}
 
 \item{holdings}{portfolio holdings}
 

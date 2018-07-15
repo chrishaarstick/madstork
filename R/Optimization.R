@@ -2,6 +2,22 @@
 # Potfolio Optimization Class ---------------------------------------------
 
 
+#' Portfolio Optimization Constructor Function
+#'
+#' Create a portfolio optimization object. Portfolio optimization objects can be
+#' optimized with the optimize functions.
+#'
+#' @param portfolio portfolio object
+#' @param estimates estimates object
+#' @param prices current symbol prices
+#' @param target target objective
+#' @param desc optional meta-data description input
+#' @param version optional input for version
+#'
+#' @return portfolio_optimization class
+#' @export
+#'
+#' @examples
 portfolio_optimization <- function(portfolio,
                                    estimates,
                                    constraints,
@@ -56,7 +72,7 @@ portfolio_optimization <- function(portfolio,
 
 
 
-# NBTO --------------------------------------------------------------------
+# Trade Pairs -------------------------------------------------------------
 
 
 get_sell_trades <- function(pobj,
@@ -220,7 +236,17 @@ get_buy_trades.character <- function(obj,
 
 
 
-
+#' Create Trade Pairs Function
+#'
+#' Given portfolio, estimates, and target creates a data.frame of possible trade
+#' pairs with expected target impact (delta)
+#'
+#' @inheritParams portfolio_optimization
+#'
+#' @return trade pairs data.frame
+#' @export
+#'
+#' @examples
 trade_pairs <- function(portfolio, estimates, target){
   checkmate::assert_class(portfolio, "portfolio")
   checkmate::assert_class(estimates, "estimates")
@@ -252,12 +278,28 @@ trade_pairs <- function(portfolio, estimates, target){
 
 
 
+#' Execute Trade Pair Function
+#'
+#' Updates portfolio with trade pair provided
+#'
+#' @param buy buy symbol to buy
+#' @param sell sell symbol
+#' @param portfolio portfolio object
+#' @param prices current prices of symbols being traded
+#' @param amount trade amount
+#' @param lot_size min lot size
+#'
+#' @return updated portfolio object
+#' @export
+#'
+#' @examples
 execute_trade_pair <- function(buy,
                                sell,
                                portfolio,
                                prices,
                                amount,
                                lot_size = 1) {
+
   port <- portfolio
   if (sell != "CASH") {
     sells <- get_sell_trades(port, as.character(sell), amount, lot_size)
@@ -288,6 +330,10 @@ execute_trade_pair <- function(buy,
 
   port
 }
+
+
+# Constraints -------------------------------------------------------------
+
 
 
 evaluate_constraints <- function(pobj1, pobj2, cobj, eobj){
@@ -349,135 +395,29 @@ compare_constraints <- function(pobj1, pobj2, cobj, eobj){
 }
 
 
-select_optimal_portfolio <- function(portfolios, estimates, target, criteria) {
-  checkmate::assert_list(portfolios)
-  checkmate::assert_class(estimates, "estimates")
-
-  purrr::map_df(
-    portfolios,
-    get_estimated_port_values,
-    eobj = estimates,
-    port_only = TRUE,
-    .id = "id"
-  ) %>%
-    dplyr::top_n(ifelse(criteria == "minimize", -1, 1), !!rlang::sym(target)) %>%
-    .$id %>%
-    portfolios[[.]]
-}
 
 
-#' Meet Symbol Constraints
+# Optimization ------------------------------------------------------------
+
+
+#' Next Best Trade Optimization
 #'
-#' Updates portfolio to meet symbol constraints
-meet_symbol_constraints <- function(pobj, cobj, eobj, amount, lot_size = 1){
-  checkmate::assert_class(pobj, "portfolio")
-  checkmate::assert_class(cobj, "constraints")
-  checkmate::assert_class(eobj, "estimates")
-  checkmate::assert_character(purrr::map_chr(cobj$constraints, "type"), min.len = 1)
-
-  # failed symbol constaints
-  sym_fc <- check_constraints(cobj, pobj, eobj) %>%
-    dplyr::filter(type == "symbol" & (! check))
-  nsym_fc <- nrow(sym_fc)
-  port <- pobj
-
-  if(nsym_fc > 0) {
-    prices <- eobj$prices %>%
-      dplyr::filter(date == max(date)) %>%
-      split(.symbols) %>%
-      purrr::map("price")
-
-    for(i in 1:nsym_fc) {
-      min_diff <- sym_fc$value[i] - sym_fc$min[i]
-      port_value <- get_market_value(port) %>%
-        dplyr::filter(last_updated == max(last_updated)) %>%
-        dplyr::pull(net_value)
-      .sym <- as.character(sym_fc$args[i])
-      if(min_diff < 0) {
-        # Buy
-        .amount <- abs(min_diff) * port_value
-        .amount <- ceiling(.amount/prices[[.sym]]) * prices[[.sym]]
-        port <- execute_trade_pair(buy = .sym,
-                                   sell = "CASH",
-                                   portfolio = port,
-                                   prices = obj$prices,
-                                   amount = amount,
-                                   lot_size = lot_size)
-      } else {
-        # Sell
-        .amount <- (sym_fc$value[i] - sym_fc$max[i]) * port_value
-        .amount <- ceiling(.amount/prices[[.sym]]) * prices[[.sym]]
-        port <- execute_trade_pair(buy = "CASH",
-                                   sell = .sym,
-                                   portfolio = port,
-                                   prices = obj$prices,
-                                   amount = amount,
-                                   lot_size = lot_size)
-      }
-    }
-  }
-
-  port
-}
-
-
-meet_group_constraints <- function(pobj,
-                                   cobj,
-                                   eobj,
-                                   tp,
-                                   target,
-                                   amount,
-                                   lot_size = 1,
-                                   max_iter = 10,
-                                   plot_iter = FALSE) {
-  checkmate::assert_class(pobj, "portfolio")
-  checkmate::assert_class(cobj, "constraints")
-  checkmate::assert_class(eobj, "estimates")
-  checkmate::assert_character(purrr::map_chr(cobj$constraints, "type"), min.len = 1)
-  checkmate::assert_number(amount, lower = 0)
-  checkmate::assert_number(lot_size, lower = 0)
-  checkmate::assert_logical(plot_iter)
-
-  # failed group constaints
-  grp_fc <- check_constraints(cobj, pobj, eobj) %>%
-    dplyr::filter(type == "group" & (!check))
-  ngrp_fc <- nrow(grp_fc)
-  port <- pobj
-
-  if (ngrp_fc > 0) {
-    prices <- eobj$prices %>%
-      dplyr::filter(date == max(date)) %>%
-      split(.symbols) %>%
-      purrr::map("price")
-    grp_fc <-
-      dplyr::mutate(grp_fc, action = ifelse(value < min, "buy", "sell"))
-
-    for (i in 1:ngrp_fc) {
-      val_diff <- ifelse(
-        grp_fc$action[i] == "sell",
-        grp_fc$value[i] - grp_fc$max[i],
-        grp_fc$min[i] - grp_fc$value[i]
-      )
-      port_value <- get_market_value(port) %>%
-        dplyr::filter(last_updated == max(last_updated)) %>%
-        dplyr::pull(net_value)
-      .syms <- strsplit(as.character(grp_fc$args[i]), ",")[[1]]
-      .tp <- if (grp_fc$action[i] == "sell") {
-        tp %>% dplyr::filter(sell %in% .syms & (! buy %in% .syms) )
-      } else {
-        tp %>% dplyr::filter(buy %in% .syms & (! sell %in% .syms))
-      }
-      continue <- TRUE
-      while(continue) {
-       port <- nbto(port, cobj, eobj, .tp, target)
-      }
-    }
-  }
-}
-
-
-
-#' Initial Next Best Trade Optimization sub function
+#' Function to select optimal next best trade given the portfolio, estimates,
+#' possible trades and constraints
+#'
+#' Used in meet_constraint functions and optimize function
+#'
+#' @param pobj portfolio object
+#' @param cobj constraints object
+#' @param eobj estimates object
+#' @param prices data.frame with current symbol prices. Has to contain all
+#'   symbols included in estimates object. Should also include dividend
+#' @param trade_pairs trade pairs to consider. trades limited to the trade pairs
+#'   provided
+#' @param target target objective
+#' @param minimize logical flag to minimize target objective
+#' @param amount trade amount in dollars
+#' @param lot_size lot size for trades
 nbto <- function(pobj,
                  cobj,
                  eobj,
@@ -779,6 +719,33 @@ optimize <- function(obj,
 }
 
 
+#' Select Optimal Portfolio
+#'
+#' Selects optimal portfolio given list of canidate portfolios, estimates, and a
+#' target objective
+#'
+#' @inheritParams portfolio_optimization
+#' @param criteria string value. set to minimize to select smallest target value
+#'
+#' @return optimal portfolio object
+#' @export
+#'
+#' @examples
+select_optimal_portfolio <- function(portfolios, estimates, target, criteria) {
+  checkmate::assert_list(portfolios)
+  checkmate::assert_class(estimates, "estimates")
+
+  purrr::map_df(
+    portfolios,
+    get_estimated_port_values,
+    eobj = estimates,
+    port_only = TRUE,
+    .id = "id"
+  ) %>%
+    dplyr::top_n(ifelse(criteria == "minimize", -1, 1), !!rlang::sym(target)) %>%
+    .$id %>%
+    portfolios[[.]]
+}
 
 # Optimization Report Functions -------------------------------------------
 
