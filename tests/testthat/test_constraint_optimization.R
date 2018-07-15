@@ -130,7 +130,7 @@ test_that("Meet Constraints optimization meets all buy symbol constrainsts", {
 })
 
 
-test_that("Meet Constraints optimization meets sell symbol constrainsts", {
+test_that("Meet Constraints optimization meets sell symbol constraints", {
 
   .target <- "return"
 

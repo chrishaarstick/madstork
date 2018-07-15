@@ -504,8 +504,10 @@ nbto <- function(pobj,
 
   # Check Canidates Constraints
   port_evals <- port_canidates %>%
-    purrr::map( ~ check_constraints(cobj, ., eobj)) %>%
-    purrr::map_lgl( ~ all(.$check))
+    purrr::map(~ check_constraints(cobj, ., eobj)) %>%
+    purrr::map_lgl(function(x) {
+      ifelse(nrow(x) == 0, TRUE, all(x$check))
+    })
 
   # Only select canidates that meet constraints
   port_eval_list <- purrr::keep(port_canidates, port_evals)
