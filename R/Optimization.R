@@ -550,7 +550,6 @@ optimize <- function(obj,
       break
     } else {
       tp_smpl <- tp_actives %>%
-        #dplyr::sample_n(min(npairs, tp_nactives), weight = delta)
         dplyr::top_n(min(npairs, tp_nactives), wt = delta)
     }
 
