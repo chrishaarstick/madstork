@@ -530,6 +530,8 @@ optimize <- function(obj,
       get_estimated_port_values(port, obj$estimates) %>%
         dplyr::mutate(iter = i + prev_iter)
     )
+
+    if(plot_iter) print(po_target_chart(obj))
   }
 
   # Set up NBTO target optimization
@@ -637,24 +639,8 @@ optimize <- function(obj,
       get_estimated_port_values(opt_port, obj$estimates) %>%
         dplyr::mutate(iter = i + prev_iter)
     )
-    # if (!opt_check & !is.na(cand_checks[opt_port_id])) {
-    #   if (cand_checks[opt_port_id]) {
-    #    # all_active <- TRUE
-    #     all_active <- FALSE
-    #   } else {
-    #     all_active <- FALSE
-    #   }
-    # } else {
-    #   all_active <- FALSE
-    # }
 
-    if(plot_iter) {
-      print(ggplot(obj$portfolio_values, aes_string(x='iter', y=obj$target)) +
-              geom_line(size=1.05, color=madstork_pal()(1)) +
-              theme_minimal() +
-              labs(title = "Madstork Next Best Trade Optimization",
-                   subtitle = paste("Iteration", i + prev_iter)))
-    }
+    if(plot_iter) print(po_target_chart(obj))
 
     # Determine Stopping Conditions
     obj$runtime <- as.numeric(difftime(Sys.time(), t1, units = "sec"))
@@ -775,4 +761,14 @@ po_constraints_charts <- function(obj) {
     facet_wrap(~type+args, scales = "free") +
     scale_color_madstork() +
     theme_minimal()
+}
+
+
+po_target_chart <- function(obj) {
+
+  ggplot(obj$portfolio_values, aes_string(x='iter', y=obj$target)) +
+    geom_line(size=1.05, color=madstork_pal()(1)) +
+    theme_minimal() +
+    labs(title = "Madstork Next Best Trade Optimization",
+         subtitle = paste("Iteration", i + prev_iter))
 }
