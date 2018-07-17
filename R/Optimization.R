@@ -418,6 +418,9 @@ compare_constraints <- function(pobj1, pobj2, cobj, eobj){
 #' @param minimize logical flag to minimize target objective
 #' @param amount trade amount in dollars
 #' @param lot_size lot size for trades
+#' @param include_port logical flag to include the portfolio object provided in
+#'   the canidate list. Default is FALSE.
+#' @export
 nbto <- function(pobj,
                  cobj,
                  eobj,
@@ -426,11 +429,14 @@ nbto <- function(pobj,
                  target,
                  minimize,
                  amount,
-                 lot_size) {
+                 lot_size,
+                 include_port = FALSE,
+                 update_trade_pairs = FALSE) {
   checkmate::assert_class(pobj, "portfolio")
   checkmate::assert_class(cobj, "constraints")
   checkmate::assert_class(eobj, "estimates")
-
+  checkmate::assert_flag(include_port)
+  checkmate::assert_flag(update_trade_pairs)
 
   # Create Canidate Portfolios
   port_canidates <- trade_pairs %>%
@@ -441,6 +447,9 @@ nbto <- function(pobj,
                                     prices,
                                     amount,
                                     lot_size))
+  if(include_port) {
+    port_canidates <- c(list(`0` = pobj), port_canidates)
+  }
 
   # Check Canidates Constraints
   port_evals <- port_canidates %>%
@@ -476,10 +485,41 @@ nbto <- function(pobj,
       .$id %>%
       head(1)
 
-    port_eval_list[opt_port_id][[1]]
+    port <- port_eval_list[opt_port_id][[1]]
   } else {
-    pobj
+    port <- pobj
   }
+
+  # Update Trade Pairs
+  if(update_trade_pairs) {
+    all_ids <- as.numeric(names(port_canidates))
+    active_ids <- as.numeric(names(port_eval_list))
+    inactive_ids <- setdiff(all_ids, active_ids)
+
+    trade_pairs <- trade_pairs %>%
+      mutate(selected = ifelse(id %in% all_ids , selected + 1, selected),
+             active = ifelse(id %in% active_ids, TRUE, FALSE),
+             trades = ifelse(id %in% opt_port_id, trades + 1, trades))
+    #
+    # if(as.numeric(opt_port_id) != 0) {
+    #   trade_pairs <- trade_pairs %>%
+    #     left_join(
+    #       data.frame(id = active_ids,
+    #                  active = active_trades) %>%
+    #         dplyr::mutate(s = 1, t = ifelse(id == as.numeric(opt_port_id), 1, 0)),
+    #       by = "id"
+    #     ) %>%
+    #     tidyr::replace_na(list(s = 0, t = 0)) %>%
+    #     dplyr::mutate(selected = selected + s,
+    #                   trades = trades + t) %>%
+    #     dplyr::mutate(active = ifelse(is.na(active.x), active.y, active.x)) %>%
+    #     # dplyr::mutate(active = ifelse(buy == sell[t==1] & buy != "CASH", FALSE, active)) %>%
+    #     # dplyr::mutate(active = ifelse(sell == buy[t==1] & sell != "CASH", FALSE, active)) %>%
+    #     dplyr::select(-s,-t, -active.x, -active.y)
+    # }
+  }
+
+  list(portfolio = port, trade_pairs = trade_pairs)
 }
 
 
@@ -487,7 +527,7 @@ nbto <- function(pobj,
 optimize <- function(obj,
                      npairs,
                      amount,
-                     lot_size,
+                     lot_size = 1,
                      max_iter = 10,
                      max_runtime = 300,
                      improve_lag = 2,
@@ -505,30 +545,34 @@ optimize <- function(obj,
   checkmate::assert_number(min_improve, lower = 0)
   checkmate::assert_logical(plot_iter)
 
+  .minimize <- ifelse(obj$criteria == "minimize", TRUE, FALSE)
+  prev_iter <- max(obj$portfolio_values$iter)
 
   # Meet Constraints
   n_constraints <- length(obj$constraints$constraints)
-  for(n in n_constraints) {
+  for(n in 1:n_constraints) {
     n_idx <- ifelse(n == 1, 0, 1:(n - 1))
 
     # Meet constraint
-    constraint <- filter_constraints(obj$constraints, n)[[1]]
-    port <- meet_constraints(constraint,
-                             obj$optimal_portfolio,
-                             filter_constraints(obj$constraints, n_idx),
-                             obj$estimates,
-                             obj$prices,
-                             obj$trade_pairs,
-                             obj$target,
-                             amount,
-                             lot_size)
+    constraint <- filter_constraints(obj$constraints, n)
+    port <- meet_constraint(constraint$constraints[[1]],
+                            portfolio = obj$optimal_portfolio,
+                            constraints = filter_constraints(obj$constraints, n_idx),
+                            estimates = obj$estimates,
+                            prices = obj$prices,
+                            trade_pairs = obj$trade_pairs,
+                            target = obj$target,
+                            minimize = .minimize,
+                            amount =  amount,
+                            lot_size = lot_size,
+                            max_iter = 10)
 
-     # Update Obj
+    # Update Obj
     obj$optimal_portfolio <- port
     obj$portfolios <- c(obj$portfolios, list(port))
     obj$portfolio_values <- obj$portfolio_values %>% rbind(
       get_estimated_port_values(port, obj$estimates) %>%
-        dplyr::mutate(iter = i + prev_iter)
+        dplyr::mutate(iter = n + prev_iter)
     )
 
     if(plot_iter) print(po_target_chart(obj))
@@ -555,88 +599,32 @@ optimize <- function(obj,
         dplyr::top_n(min(npairs, tp_nactives), wt = delta)
     }
 
-    # Create Canidate Portfolios
-    port_canidates <- tp_smpl %>%
-      split(.$id) %>%
-      purrr::map(
-        ~ execute_trade_pair(
-          .$buy,
-          .$sell,
-          obj$optimal_portfolio,
-          obj$prices,
-          amount,
-          lot_size
-        )
-      )
-
-    # Check constraints for optimal and canidate portfolios
-    opt_check <- check_constraints(obj$constraints, obj$optimal_portfolio, obj$estimates) %>%
-      .$check %>%
-      all()
-    cand_checks <- port_canidates %>%
-      purrr::map(
-        ~ check_constraints(obj$constraints, ., obj$estimates)) %>%
-      purrr::map_lgl(~all(.$check))
-    active_trades <- cand_checks
-
-    # If optimal meets checks only use canidates that also meet checks
-    if (opt_check) {
-      port_eval_list <- c(purrr::keep(port_canidates, cand_checks),
-                          list(`0` = obj$optimal_portfolio))
-    } else {
-      # Evaluate Canidates to find canidates that improve on constraints
-      port_evals <- port_canidates %>%
-        purrr::map_lgl(~ evaluate_constraints(., obj$optimal_portfolio, obj$constraints, obj$estimates))
-      active_trades <- port_evals
-
-      # Only select canidates that improve and remove optimal
-      port_eval_list <- purrr::keep(port_canidates, port_evals)
-    }
-
-
-    if (length(port_eval_list) > 0) {
-      # Select optimal portfolio
-      opt_port_id <- port_eval_list %>%
-        purrr::map_df(.,
-                      get_estimated_port_values,
-                      eobj = obj$estimates,
-                      # port_only = TRUE,
-                      .id = "id") %>%
-        dplyr::top_n(ifelse(obj$criteria == "minimize",-1, 1),!!rlang::sym(obj$target)) %>%
-        .$id %>%
-        head(1)
-      opt_port <- port_eval_list[[opt_port_id]]
-    } else {
-      opt_port_id <- 0
-      opt_port <- obj$optimal_portfolio
-    }
-
-    # Update Trade Pairs
-    if(as.numeric(opt_port_id) == 0) {
-      obj$trade_pairs <- obj$trade_pairs %>%
-        mutate(selected = ifelse(id %in% as.numeric(names(active_trades)), selected + 1, selected))
-    } else {
-      obj$trade_pairs <- obj$trade_pairs %>%
-        left_join(
-          data.frame(id = as.numeric(names(active_trades)),
-                     active = active_trades) %>%
-            dplyr::mutate(s = 1, t = ifelse(id == as.numeric(opt_port_id), 1, 0)),
-          by = "id"
-        ) %>%
-        tidyr::replace_na(list(s = 0, t = 0)) %>%
-        dplyr::mutate(selected = selected + s,
-                      trades = trades + t) %>%
-        dplyr::mutate(active = ifelse(is.na(active.x), active.y, active.x)) %>%
-        dplyr::mutate(active = ifelse(buy == sell[t==1] & buy != "CASH", FALSE, active)) %>%
-        dplyr::mutate(active = ifelse(sell == buy[t==1] & sell != "CASH", FALSE, active)) %>%
-        dplyr::select(-s,-t, -active.x, -active.y)
-    }
+    # Run NBTO
+    nbto_opt <- nbto(
+      pobj = obj$optimal_portfolio,
+      cobj = obj$constraints,
+      eobj = obj$estimates,
+      prices = obj$prices,
+      trade_pairs = tp_smpl,
+      target = obj$target,
+      minimize = .minimize,
+      amount = amount,
+      lot_size = lot_size,
+      include_port = TRUE,
+      update_trade_pairs = TRUE
+    )
 
     # Update Obj
-    obj$optimal_portfolio <- opt_port
-    obj$portfolios <- c(obj$portfolios, list(opt_port))
+    obj$optimal_portfolio <- nbto_opt$portfolio
+    obj$trade_pairs <- rbind(
+      nbto_opt$trade_pairs,
+      obj$trade_pairs %>%
+        dplyr::filter(!id %in% nbto_opt$trade_pairs$id)
+    ) %>%
+      arrange(-delta)
+    obj$portfolios <- c(obj$portfolios, list(nbto_opt$portfolio))
     obj$portfolio_values <- obj$portfolio_values %>% rbind(
-      get_estimated_port_values(opt_port, obj$estimates) %>%
+      get_estimated_port_values(nbto_opt$portfolio, obj$estimates) %>%
         dplyr::mutate(iter = i + prev_iter)
     )
 

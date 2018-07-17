@@ -386,7 +386,8 @@ meet_constraint.symbol_constraint <- function(constraint,
       minimize = minimize,
       amount = trade_amount,
       lot_size = lot_size
-    )
+    )$portfolio
+
     cc <- check_constraint(constraint, port$holdings_market_value)
     iter <- iter + 1
     check <- (cc$check | iter >= max_iter)
@@ -530,7 +531,8 @@ meet_constraint.cash_constraint <- function(constraint,
       minimize = minimize,
       amount = trade_amount,
       lot_size = lot_size
-    )
+    )$portfolio
+
     cc <- check_constraint(constraint, port)
     iter <- iter + 1
     check <- (cc$check | iter >= max_iter)
@@ -674,7 +676,8 @@ meet_constraint.cardinality_constraint <- function(constraint,
       target = target,
       minimize = minimize,
       amount = .amount,
-      lot_size = lot_size)
+      lot_size = lot_size
+      )$portfolio
 
     holdings <- get_symbol_estimates_share(port, estimates)
     cc <- check_constraint(constraint, holdings)
@@ -829,7 +832,7 @@ meet_constraint.group_constraint <- function(constraint,
       minimize = minimize,
       amount = trade_amount,
       lot_size = lot_size
-    )
+    )$portfolio
 
     cc <- check_constraint(constraint, port$holdings_market_value)
     iter <- iter + 1
@@ -1000,7 +1003,7 @@ meet_constraint.performance_constraint <- function(constraint,
       minimize = minimize,
       amount = amount,
       lot_size = lot_size
-    )
+    )$portfolio
 
     cc <- check_constraint(constraint, get_estimated_port_stats(port, estimates, TRUE))
     iter <- iter + 1
