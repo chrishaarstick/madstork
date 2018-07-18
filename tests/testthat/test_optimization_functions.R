@@ -162,30 +162,30 @@ test_that("Improves Failed Symbol Constraints", {
 
 
 # Single Holding - Testing Estimate Symbol setdiff ------------------------
-#
-# # Create Portfolio
-# p3 <- portfolio("new_port", cash=0) %>%
-#   make_deposit(amount = 15000) %>%
-#   make_buy(symbol = "TLT", quantity = 30, price = 100) %>%
-#   update_market_value()
-#
-#
-# # Create Constraints
-# c3 <- constraints(symbols = e1$symbols) %>%
-#   add_cash_constraint(min = 0, max = .05) %>%
-#   add_min_return(min = .12) %>%
-#   add_min_yield(min = .015) %>%
-#   add_symbol_constraint(min = .0, max = .5)
-#
-#
-# # Create Optimization
-# po3 <- portfolio_optimization(p3, e1, c3, prices, target = "sharpe")
-#
-# # Optimize
-# po3_opt <- madstork::optimize(po3, npairs = 4,
-#                               amount = 1000, lot_size = 1,
-#                               max_iter = 15, max_runtime = 180,
-#                               improve_lag = 10, min_improve = .001)
+
+# Create Portfolio
+p3 <- portfolio("new_port", cash=0) %>%
+  make_deposit(amount = 15000) %>%
+  make_buy(symbol = "TLT", quantity = 30, price = 100) %>%
+  update_market_value(prices)
+
+
+# Create Constraints
+c3 <- constraints(symbols = e1$symbols) %>%
+  add_cash_constraint(min = 0, max = .10) %>%
+  add_min_return(min = .12) %>%
+  add_min_yield(min = .015) %>%
+  add_symbol_constraint(min = .0, max = .5)
+
+
+# Create Optimization
+po3 <- portfolio_optimization(p3, e1, c3, prices, target = "sharpe")
+
+# Optimize
+po3_opt <- madstork::optimize(po3, npairs = 4,
+                              amount = 1000, lot_size = 1,
+                              max_iter = 15, max_runtime = 180,
+                              improve_lag = 10, min_improve = .001, plot_iter = TRUE)
 
 
 

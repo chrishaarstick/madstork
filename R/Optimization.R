@@ -256,7 +256,7 @@ trade_pairs <- function(portfolio, estimates, target){
     dplyr::select_at(c("symbol", target))
 
   holdings <- portfolio$holdings
-  port_syms <- if(nrow(holdings) > 0) as.character(holdings$symbol) else NULL
+  port_syms <- if(nrow(holdings) > 0) unique(as.character(holdings$symbol)) else NULL
 
   expand.grid(buy = c("CASH", estimates$symbols),
               sell = c("CASH", port_syms)) %>%
@@ -454,9 +454,7 @@ nbto <- function(pobj,
   # Check Canidates Constraints
   port_evals <- port_canidates %>%
     purrr::map(~ check_constraints(cobj, ., eobj)) %>%
-    purrr::map_lgl(function(x) {
-      ifelse(nrow(x) == 0, TRUE, all(x$check))
-    })
+    purrr::map_lgl(~ ifelse(nrow(.) == 0, TRUE, all(.$check)))
 
   # Only select canidates that meet constraints
   port_eval_list <- purrr::keep(port_canidates, port_evals)
@@ -568,14 +566,16 @@ optimize <- function(obj,
                             max_iter = 10)
 
     # Update Obj
-    obj$optimal_portfolio <- port
-    obj$portfolios <- c(obj$portfolios, list(port))
-    obj$portfolio_values <- obj$portfolio_values %>% rbind(
-      get_estimated_port_values(port, obj$estimates) %>%
-        dplyr::mutate(iter = n + prev_iter)
-    )
+    if(nrow(get_trades(port)) > nrow(get_trades(obj$optimal_portfolio))) {
+      obj$optimal_portfolio <- port
+      obj$portfolios <- c(obj$portfolios, list(port))
+      obj$portfolio_values <- obj$portfolio_values %>%
+        rbind(get_estimated_port_values(port, obj$estimates) %>%
+                dplyr::mutate(iter = n + prev_iter))
+      obj$trade_pairs <- trade_pairs(obj$optimal_portfolio, obj$estimates, obj$target)
 
-    if(plot_iter) print(po_target_chart(obj))
+      if(plot_iter) print(po_target_chart(obj))
+    }
   }
 
   # Set up NBTO target optimization
@@ -748,7 +748,9 @@ po_constraints_charts <- function(obj) {
     geom_point(size = 2, shape=1, color ="blue") +
     facet_wrap(~type+args, scales = "free") +
     scale_color_madstork() +
-    theme_minimal()
+    theme_minimal() +
+    labs(title = "Madstork PO Constraints Chart",
+         x = "Iteration")
 }
 
 
@@ -756,7 +758,8 @@ po_target_chart <- function(obj) {
 
   ggplot(obj$portfolio_values, aes_string(x='iter', y=obj$target)) +
     geom_line(size=1.05, color=madstork_pal()(1)) +
+    geom_point(size=4, color=madstork_pal()(1), shape = 1) +
     theme_minimal() +
     labs(title = "Madstork Next Best Trade Optimization",
-         subtitle = paste("Iteration", i + prev_iter))
+         subtitle = paste("Iteration", max(obj$portfolio_values$iter)))
 }
