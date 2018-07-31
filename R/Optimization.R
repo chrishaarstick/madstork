@@ -334,41 +334,41 @@ execute_trade_pair <- function(buy,
 
 # Constraints -------------------------------------------------------------
 
-
-
-evaluate_constraints <- function(pobj1, pobj2, cobj, eobj){
-
-  cc1 <- check_constraints(cobj, pobj1, eobj)
-
-  # Constraints Evaluation
-  if(! all(cc1$check))  {
-
-    # compare new constraints to intial state
-    cc_eval <- check_constraints(cobj, pobj2, eobj) %>%
-      select(id, old_value = value) %>%
-      dplyr::inner_join(cc1, by = "id") %>%
-      dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
-      dplyr::mutate(
-        improve = check,
-        improve = ifelse(!improve &
-                           old_value < min & value >= old_value, TRUE, improve),
-        improve = ifelse(!improve &
-                           old_value > max & value <= old_value, TRUE, improve)
-      )
-
-    if(! all(cc_eval$improve)) {
-      constraints_passed <- FALSE
-      #message("Constraints conditions not met or improved - trade not approved")
-    } else {
-      constraints_passed <- TRUE
-    }
-
-  } else {
-    constraints_passed <- TRUE
-  }
-
-  constraints_passed
-}
+#
+#
+# evaluate_constraints <- function(pobj1, pobj2, cobj, eobj){
+#
+#   cc1 <- check_constraints(cobj, pobj1, eobj)
+#
+#   # Constraints Evaluation
+#   if(! all(cc1$check))  {
+#
+#     # compare new constraints to intial state
+#     cc_eval <- check_constraints(cobj, pobj2, eobj) %>%
+#       select(id, old_value = value) %>%
+#       dplyr::inner_join(cc1, by = "id") %>%
+#       dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
+#       dplyr::mutate(
+#         improve = check,
+#         improve = ifelse(!improve &
+#                            old_value < min & value >= old_value, TRUE, improve),
+#         improve = ifelse(!improve &
+#                            old_value > max & value <= old_value, TRUE, improve)
+#       )
+#
+#     if(! all(cc_eval$improve)) {
+#       constraints_passed <- FALSE
+#       #message("Constraints conditions not met or improved - trade not approved")
+#     } else {
+#       constraints_passed <- TRUE
+#     }
+#
+#   } else {
+#     constraints_passed <- TRUE
+#   }
+#
+#   constraints_passed
+# }
 
 
 #' Compare Constriant Checks for two portfolios
@@ -543,6 +543,9 @@ optimize <- function(obj,
   checkmate::assert_number(min_improve, lower = 0)
   checkmate::assert_logical(plot_iter)
 
+  .target <- ifelse(obj$target == "return", "mu",
+                    ifelse(obj$target == "risk", "sd",
+                           ifelse(obj$target == "income", "yield", obj$target)))
   .minimize <- ifelse(obj$criteria == "minimize", TRUE, FALSE)
   prev_iter <- max(obj$portfolio_values$iter)
 
@@ -572,7 +575,7 @@ optimize <- function(obj,
       obj$portfolio_values <- obj$portfolio_values %>%
         rbind(get_estimated_port_values(port, obj$estimates) %>%
                 dplyr::mutate(iter = n + prev_iter))
-      obj$trade_pairs <- trade_pairs(obj$optimal_portfolio, obj$estimates, obj$target)
+      obj$trade_pairs <- trade_pairs(obj$optimal_portfolio, obj$estimates, .target)
 
       if(plot_iter) print(po_target_chart(obj))
     }
