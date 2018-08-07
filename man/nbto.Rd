@@ -4,7 +4,8 @@
 \alias{nbto}
 \title{Next Best Trade Optimization}
 \usage{
-nbto(pobj, cobj, eobj, prices, trade_pairs, target, minimize, amount, lot_size)
+nbto(pobj, cobj, eobj, prices, trade_pairs, target, minimize, amount, lot_size,
+  include_port = FALSE, update_trade_pairs = FALSE)
 }
 \arguments{
 \item{pobj}{portfolio object}
@@ -26,6 +27,9 @@ provided}
 \item{amount}{trade amount in dollars}
 
 \item{lot_size}{lot size for trades}
+
+\item{include_port}{logical flag to include the portfolio object provided in
+the canidate list. Default is FALSE.}
 }
 \description{
 Function to select optimal next best trade given the portfolio, estimates,

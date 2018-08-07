@@ -64,7 +64,7 @@ test_that("Optimize improves return target", {
   po <- portfolio_optimization(p1, e1, c1, prices, target =  .target)
 
   # Optimize
-  po_opt <- madstork::optimize(po,
+  po_opt <- optimize(po,
                                npairs = .npairs,
                                amount = trade_amount,
                                lot_size = .lot_size,
@@ -121,7 +121,7 @@ test_that("Improves Failed Symbol Constraints", {
   po <- portfolio_optimization(p1, e1, c2, prices, target = "return")
 
   # Optimize
-  po_opt <- madstork::optimize(po,
+  po_opt <- optimize(po,
                                npairs = .npairs,
                                amount = trade_amount,
                                lot_size = .lot_size,
@@ -182,7 +182,7 @@ c3 <- constraints(symbols = e1$symbols) %>%
 po3 <- portfolio_optimization(p3, e1, c3, prices, target = "sharpe")
 
 # Optimize
-po3_opt <- madstork::optimize(po3, npairs = 4,
+po3_opt <- optimize(po3, npairs = 4,
                               amount = 1000, lot_size = 1,
                               max_iter = 15, max_runtime = 180,
                               improve_lag = 10, min_improve = .001, plot_iter = TRUE)
