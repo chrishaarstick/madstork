@@ -16,8 +16,7 @@
 #'
 #' @return portfolio_optimization class
 #' @export
-#'
-#' @examples
+#' @import tidyverse
 portfolio_optimization <- function(portfolio,
                                    estimates,
                                    constraints,
@@ -75,6 +74,22 @@ portfolio_optimization <- function(portfolio,
 # Trade Pairs -------------------------------------------------------------
 
 
+#' Get Sell Trades
+#'
+#' Returns all possible sell trades from a portfolio object
+#'
+#' Checks current holdings and generates sell tickets based on symbol, trade
+#' amount and lot_size
+#'
+#' @param pobj portfolio object
+#' @param symbol vector of holding symbols to filter sell tickets by
+#' @param amount trade amount
+#' @param lot_size minimum share lot size
+#' @param partial logical option to allow for partial trade tickets with an
+#'   amount less than the amount parameter value provided
+#'
+#' @return data.frame with possible sell trades
+#' @export
 get_sell_trades <- function(pobj,
                             symbol,
                             amount,
@@ -129,11 +144,20 @@ get_sell_trades <- function(pobj,
 }
 
 
+#' Get Buy Trades
+#'
+#' @param obj object to use for buy trades
+#' @inheritParams get_sell_trades
+#'
+#' @return data.frame with buy trades
+#' @export
 get_buy_trades <- function(obj, symbols, amount, lot_size) {
   UseMethod("get_buy_trades")
 }
 
 
+#' @rdname get_buy_trades
+#' @export
 get_buy_trades.data.frame <- function(obj,
                                       symbols = NULL,
                                       amount,
@@ -162,6 +186,8 @@ get_buy_trades.data.frame <- function(obj,
 }
 
 
+#' @rdname get_buy_trades
+#' @export
 get_buy_trades.estimates <- function(obj,
                                      symbols = NULL,
                                      amount,
@@ -190,6 +216,8 @@ get_buy_trades.estimates <- function(obj,
 }
 
 
+#' @rdname get_buy_trades
+#' @export
 get_buy_trades.portfolio <- function(obj,
                                      symbols = NULL,
                                      amount,
@@ -218,6 +246,8 @@ get_buy_trades.portfolio <- function(obj,
 }
 
 
+#' @rdname get_buy_trades
+#' @export
 get_buy_trades.character <- function(obj,
                                      symbols = NULL,
                                      amount,
@@ -245,8 +275,6 @@ get_buy_trades.character <- function(obj,
 #'
 #' @return trade pairs data.frame
 #' @export
-#'
-#' @examples
 trade_pairs <- function(portfolio, estimates, target){
   checkmate::assert_class(portfolio, "portfolio")
   checkmate::assert_class(estimates, "estimates")
@@ -291,8 +319,6 @@ trade_pairs <- function(portfolio, estimates, target){
 #'
 #' @return updated portfolio object
 #' @export
-#'
-#' @examples
 execute_trade_pair <- function(buy,
                                sell,
                                portfolio,
@@ -370,29 +396,27 @@ execute_trade_pair <- function(buy,
 #   constraints_passed
 # }
 
-
-#' Compare Constriant Checks for two portfolios
-#'
-#' Function used to evaluate new portfolio to see if constraints improved upon
-compare_constraints <- function(pobj1, pobj2, cobj, eobj){
-  checkmate::assert_class(pobj1, "portfolio")
-  checkmate::assert_class(pobj2, "portfolio")
-  checkmate::assert_class(cobj, "constraints")
-  checkmate::assert_class(eobj, "estimates")
-
-  # compare new constraints to intial state
-  check_constraints(cobj, pobj2, eobj) %>%
-    select(id, old_value = value) %>%
-    dplyr::inner_join(check_constraints(cobj, pobj1, eobj), by = "id") %>%
-    dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
-    dplyr::mutate(
-      improve = check,
-      improve = ifelse(!improve &
-                         old_value < min & value >= old_value, TRUE, improve),
-      improve = ifelse(!improve &
-                         old_value > max & value <= old_value, TRUE, improve)
-    )
-}
+#
+#
+# compare_constraints <- function(pobj1, pobj2, cobj, eobj){
+#   checkmate::assert_class(pobj1, "portfolio")
+#   checkmate::assert_class(pobj2, "portfolio")
+#   checkmate::assert_class(cobj, "constraints")
+#   checkmate::assert_class(eobj, "estimates")
+#
+#   # compare new constraints to intial state
+#   check_constraints(cobj, pobj2, eobj) %>%
+#     select(id, old_value = value) %>%
+#     dplyr::inner_join(check_constraints(cobj, pobj1, eobj), by = "id") %>%
+#     dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
+#     dplyr::mutate(
+#       improve = check,
+#       improve = ifelse(!improve &
+#                          old_value < min & value >= old_value, TRUE, improve),
+#       improve = ifelse(!improve &
+#                          old_value > max & value <= old_value, TRUE, improve)
+#     )
+# }
 
 
 
@@ -522,8 +546,26 @@ nbto <- function(pobj,
 
 
 
+#' Optimize Portfolio Optimization
+#'
+#' Executes optimize routine on porfolio optimization object
+#'
+#' @param obj portfolio optimization object to optimize
+#' @param trade_pairs number of trade pairs consider for each optimization step
+#' @param amount trade amount
+#' @param lot_size minimum share lot size
+#' @param max_iter maximum number of iterations
+#' @param max_runtime max runtime in seconds
+#' @param improve_lag number of iterations lags to compare min improvement
+#'   against
+#' @param min_improve minimum improvement of current iteration over improve_lag.
+#'   if not met, routine stopped
+#' @param plot_iter logical option to plot interative results
+#'
+#' @return updated portfolio optimization object
+#' @export
 optimize <- function(obj,
-                     npairs,
+                     trade_pairs,
                      amount,
                      lot_size = 1,
                      max_iter = 10,
@@ -532,7 +574,7 @@ optimize <- function(obj,
                      min_improve = .001,
                      plot_iter = TRUE ) {
   checkmate::assert_class(obj, "portfolio_optimization")
-  checkmate::assert_number(npairs,
+  checkmate::assert_number(trade_pairs,
                            lower = 1,
                            upper = nrow(obj$trade_pairs))
   checkmate::assert_number(amount, lower = 0)
@@ -599,7 +641,7 @@ optimize <- function(obj,
       break
     } else {
       tp_smpl <- tp_actives %>%
-        dplyr::top_n(min(npairs, tp_nactives), wt = delta)
+        dplyr::top_n(min(trade_pairs, tp_nactives), wt = delta)
     }
 
     # Run NBTO
@@ -705,8 +747,6 @@ optimize <- function(obj,
 #'
 #' @return optimal portfolio object
 #' @export
-#'
-#' @examples
 select_optimal_portfolio <- function(portfolios, estimates, target, criteria) {
   checkmate::assert_list(portfolios)
   checkmate::assert_class(estimates, "estimates")
@@ -726,6 +766,15 @@ select_optimal_portfolio <- function(portfolios, estimates, target, criteria) {
 # Optimization Report Functions -------------------------------------------
 
 
+#' Portfolio Optimization Symbol Share Chart
+#'
+#' Creates a ggplot chart of the portfolio symbol share amount for each
+#' optimization iteration
+#'
+#' @param obj portfolio optimization object
+#'
+#' @return ggplot object
+#' @export
 po_symbol_share_chart <- function(obj) {
 
   purrr::map_df(obj$portfolios,
@@ -741,6 +790,15 @@ po_symbol_share_chart <- function(obj) {
 }
 
 
+#' Portfolio Optimization Constraints Chart
+#'
+#' Creates a ggplot chart of the portfolio optimization constraints values with
+#' bounds for each optimization iteration
+#'
+#' @param obj portfolio optimization object
+#'
+#' @return ggplot object
+#' @export
 po_constraints_charts <- function(obj) {
 
   purrr::map_df(obj$portfolios,
@@ -757,6 +815,15 @@ po_constraints_charts <- function(obj) {
 }
 
 
+#' Portfolio Optimization Target Chart
+#'
+#' Creates a ggplot chart of the portfolio optimization target values for each
+#' optimization iteration
+#'
+#' @param obj portfolio optimization object
+#'
+#' @return ggplot object
+#' @export
 po_target_chart <- function(obj) {
 
   ggplot(obj$portfolio_values, aes_string(x='iter', y=obj$target)) +

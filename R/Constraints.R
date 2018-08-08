@@ -240,7 +240,7 @@ meet_constraint <- function(constraint,
 #' @param min minimum constraint value. inclusive
 #' @param max maximum constraint value. inclusive
 #'
-#' @return
+#' @return symbol oonstaints object
 #' @export
 symbol_constraint <- function(symbols,
                               min,
@@ -407,7 +407,7 @@ meet_constraint.symbol_constraint <- function(constraint,
 #' @param min minimum constraint value. inclusive
 #' @param max maximum constraint value. inclusive
 #'
-#' @return
+#' @return cash constaint object
 #' @export
 cash_constraint <- function(min,
                             max) {

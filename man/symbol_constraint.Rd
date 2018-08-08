@@ -14,6 +14,9 @@ values to all symbols}
 
 \item{max}{maximum constraint value. inclusive}
 }
+\value{
+symbol oonstaints object
+}
 \description{
 Inherits from constraint class
 }

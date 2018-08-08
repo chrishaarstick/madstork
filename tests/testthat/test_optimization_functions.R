@@ -65,14 +65,14 @@ test_that("Optimize improves return target", {
 
   # Optimize
   po_opt <- optimize(po,
-                               npairs = .npairs,
-                               amount = trade_amount,
-                               lot_size = .lot_size,
-                               max_iter = .max_iters,
-                               max_runtime = .max_runtime,
-                               improve_lag = .improve_lag,
-                               min_improve = .001,
-                               plot_iter = FALSE)
+                     trade_pairs = .npairs,
+                     amount = trade_amount,
+                     lot_size = .lot_size,
+                     max_iter = .max_iters,
+                     max_runtime = .max_runtime,
+                     improve_lag = .improve_lag,
+                     min_improve = .001,
+                     plot_iter = FALSE)
 
   top_target <- get_mu(e1) %>%
     top_n(1, return) %>%
@@ -122,14 +122,14 @@ test_that("Improves Failed Symbol Constraints", {
 
   # Optimize
   po_opt <- optimize(po,
-                               npairs = .npairs,
-                               amount = trade_amount,
-                               lot_size = .lot_size,
-                               max_iter = .max_iters,
-                               max_runtime = .max_runtime,
-                               improve_lag = .improve_lag,
-                               min_improve = .001,
-                               plot_iter = FALSE)
+                     trade_pairs = .npairs,
+                     amount = trade_amount,
+                     lot_size = .lot_size,
+                     max_iter = .max_iters,
+                     max_runtime = .max_runtime,
+                     improve_lag = .improve_lag,
+                     min_improve = .001,
+                     plot_iter = FALSE)
   p1_shares <- p1 %>%
     get_symbol_estimates_share(e1) %>%
     split(.$symbol) %>%
@@ -183,9 +183,9 @@ po3 <- portfolio_optimization(p3, e1, c3, prices, target = "sharpe")
 
 # Optimize
 po3_opt <- optimize(po3, npairs = 4,
-                              amount = 1000, lot_size = 1,
-                              max_iter = 15, max_runtime = 180,
-                              improve_lag = 10, min_improve = .001, plot_iter = TRUE)
+                    amount = 1000, lot_size = 1,
+                    max_iter = 15, max_runtime = 180,
+                    improve_lag = 10, min_improve = .001, plot_iter = TRUE)
 
 
 

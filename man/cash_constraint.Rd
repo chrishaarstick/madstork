@@ -11,6 +11,9 @@ cash_constraint(min, max)
 
 \item{max}{maximum constraint value. inclusive}
 }
+\value{
+cash constaint object
+}
 \description{
 Inherits from constraint class
 }
