@@ -4,6 +4,7 @@
 #' Function that capitalizes all words.
 #'
 #' @param x vector of character strings
+#' @param first_only first word only
 #'
 #' @return vector of capitalized character strings
 #' @export

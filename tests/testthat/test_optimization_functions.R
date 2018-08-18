@@ -182,10 +182,15 @@ c3 <- constraints(symbols = e1$symbols) %>%
 po3 <- portfolio_optimization(p3, e1, c3, prices, target = "sharpe")
 
 # Optimize
-po3_opt <- optimize(po3, npairs = 4,
-                    amount = 1000, lot_size = 1,
-                    max_iter = 15, max_runtime = 180,
-                    improve_lag = 10, min_improve = .001, plot_iter = TRUE)
+po3_opt <- optimize(po3,
+                    trade_pairs = 4,
+                    amount = 1000,
+                    lot_size = 1,
+                    max_iter = 15,
+                    max_runtime = 180,
+                    improve_lag = 10,
+                    min_improve = .001,
+                    plot_iter = TRUE)
 
 
 

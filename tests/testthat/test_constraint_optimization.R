@@ -125,7 +125,7 @@ test_that("Meet Constraints optimization meets all buy symbol constrainsts", {
                           lot_size = .lot_size,
                           max_iter = 2)
   cc1.4 <- check_constraints(c1.4, p1.4, e1)
-  expect_true(cc1.4$check[1])
+  expect_gte(cc1.4$value+.01, cc1.4$min)
 
 })
 

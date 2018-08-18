@@ -510,6 +510,7 @@ nbto <- function(pobj,
     port <- port_eval_list[opt_port_id][[1]]
   } else {
     port <- pobj
+    opt_port_id <- 0
   }
 
   # Update Trade Pairs
@@ -594,7 +595,7 @@ optimize <- function(obj,
   # Meet Constraints
   n_constraints <- length(obj$constraints$constraints)
   for(n in 1:n_constraints) {
-    n_idx <- ifelse(n == 1, 0, 1:(n - 1))
+    n_idx <- if(n == 1) 0 else 1:(n - 1)
 
     # Meet constraint
     constraint <- filter_constraints(obj$constraints, n)
@@ -708,10 +709,14 @@ optimize <- function(obj,
     dplyr::group_by(date_added, transaction_date, type, symbol, price, desc) %>%
     dplyr::summarise_at("quantity", sum) %>%
     dplyr::mutate(amount = price * quantity)
+
+  obj$trades <- dplyr::bind_rows(new_sells, new_buys)
+
   final_port <- obj$portfolios[[1]]
+  final_port$holdings_market_value <- update_holdings_market_value(final_port, obj$prices)
   for (.id in new_sells$id) {
     sell <- dplyr::filter(new_sells, id == .id) %>%
-      do(get_sell_trades(obj$portfolios[[1]], as.character(.$symbol), .$amount, lot_size))
+      do(get_sell_trades(final_port, as.character(.$symbol), .$amount, lot_size))
 
     final_port <- final_port %>%
       make_sell(
@@ -743,6 +748,7 @@ optimize <- function(obj,
 #' target objective
 #'
 #' @inheritParams portfolio_optimization
+#' @param portfolios list of portfolio objects
 #' @param criteria string value. set to minimize to select smallest target value
 #'
 #' @return optimal portfolio object
@@ -782,11 +788,16 @@ po_symbol_share_chart <- function(obj) {
     ggplot(., aes(x=as.numeric(iter), y=portfolio_share, color = symbol, group=symbol)) +
     geom_line() +
     scale_color_madstork() +
+    guides(color = guide_legend(nrow=2, byrow=TRUE, title = "")) +
     scale_y_continuous(labels = scales::percent) +
     theme_minimal() +
+    theme(legend.direction = "horizontal",
+          legend.position = "bottom") +
     labs(title = "Next Best Trade Optimization",
          subtitle = "Portfolio Symbol Share Path",
-         caption = "MadStork ")
+         caption = "MadStork",
+         y = "Portfolio Share",
+         x = "Iteration")
 }
 
 
@@ -811,6 +822,7 @@ po_constraints_charts <- function(obj) {
     scale_color_madstork() +
     theme_minimal() +
     labs(title = "Madstork PO Constraints Chart",
+         caption = "MadStork",
          x = "Iteration")
 }
 
@@ -831,5 +843,7 @@ po_target_chart <- function(obj) {
     geom_point(size=4, color=madstork_pal()(1), shape = 1) +
     theme_minimal() +
     labs(title = "Madstork Next Best Trade Optimization",
-         subtitle = paste("Iteration", max(obj$portfolio_values$iter)))
+         subtitle = paste("Iteration", max(obj$portfolio_values$iter)),
+         caption = "MadStork",
+         x = "Iteration")
 }

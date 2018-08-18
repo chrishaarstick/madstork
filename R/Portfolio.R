@@ -463,8 +463,7 @@ update_market_value <- function(pobj, prices = NULL) {
     dplyr::mutate(net_value = cash + investments_value - loans - tax_liability)
 
   pobj$holdings_market_value <- holdings_market_value
-  pobj$market_value <-
-    rbind(pobj$market_value, current_market_value)
+  pobj$market_value <- rbind(pobj$market_value, current_market_value)
 
   pobj
 }

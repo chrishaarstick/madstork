@@ -186,13 +186,15 @@ constraint <- function(type,
 #' @param portfolio portfolio object
 #' @param holdings portfolio holdings
 #' @param stats portfolio statistics
+#' @param ... additional parameters. not currently implemented
 #'
 #' @return data.frame with summary of constraint check
 #' @export
 check_constraint <- function(constraint,
                              portfolio = NULL,
                              holdings = NULL,
-                             stats = NULL) {
+                             stats = NULL,
+                             ...) {
   UseMethod("check_constraint")
 }
 
@@ -211,6 +213,7 @@ check_constraint <- function(constraint,
 #' @param amount trade amount for nbto
 #' @param lot_size trade lot minimum size
 #' @param max_iter maximum number of iterations for nbto
+#' @param ... additional parameters. not currently implemented
 #'
 #' @return data.frame with summary of constraint check
 #' @export
@@ -224,7 +227,8 @@ meet_constraint <- function(constraint,
                             target,
                             amount,
                             lot_size,
-                            max_iter) {
+                            max_iter,
+                            ...) {
   UseMethod("meet_constraint")
 }
 
@@ -262,6 +266,7 @@ symbol_constraint <- function(symbols,
 #' can have
 #'
 #' @param constraints constraints object
+#' @param symbol single symbol to constrain
 #' @inheritParams symbol_constraint
 #'
 #' @return updated constraints object
@@ -895,7 +900,7 @@ add_min_return <- function(constraints,
 #' Add Maximum Risk Performance Constraint to Contraints Object
 #'
 #' @param constraints constraints object
-#' @param min maximum risk value
+#' @param max maximum risk value
 #'
 #' @return updated constraints object
 #' @export
