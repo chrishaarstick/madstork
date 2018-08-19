@@ -9,6 +9,8 @@ add_symbol_constraint(constraints, symbol = NULL, min = 0, max = 1)
 \arguments{
 \item{constraints}{constraints object}
 
+\item{symbol}{single symbol to constrain}
+
 \item{min}{minimum constraint value. inclusive}
 
 \item{max}{maximum constraint value. inclusive}

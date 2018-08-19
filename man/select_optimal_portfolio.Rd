@@ -7,6 +7,8 @@
 select_optimal_portfolio(portfolios, estimates, target, criteria)
 }
 \arguments{
+\item{portfolios}{list of portfolio objects}
+
 \item{estimates}{estimates object}
 
 \item{target}{target objective}

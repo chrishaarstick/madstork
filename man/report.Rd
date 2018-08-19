@@ -6,6 +6,9 @@
 \usage{
 report(...)
 }
+\arguments{
+\item{...}{additional parameters to pass to rmarkdown::render function}
+}
 \description{
 Generic Report Function
 }

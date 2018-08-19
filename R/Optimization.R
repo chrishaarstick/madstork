@@ -358,66 +358,6 @@ execute_trade_pair <- function(buy,
 }
 
 
-# Constraints -------------------------------------------------------------
-
-#
-#
-# evaluate_constraints <- function(pobj1, pobj2, cobj, eobj){
-#
-#   cc1 <- check_constraints(cobj, pobj1, eobj)
-#
-#   # Constraints Evaluation
-#   if(! all(cc1$check))  {
-#
-#     # compare new constraints to intial state
-#     cc_eval <- check_constraints(cobj, pobj2, eobj) %>%
-#       select(id, old_value = value) %>%
-#       dplyr::inner_join(cc1, by = "id") %>%
-#       dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
-#       dplyr::mutate(
-#         improve = check,
-#         improve = ifelse(!improve &
-#                            old_value < min & value >= old_value, TRUE, improve),
-#         improve = ifelse(!improve &
-#                            old_value > max & value <= old_value, TRUE, improve)
-#       )
-#
-#     if(! all(cc_eval$improve)) {
-#       constraints_passed <- FALSE
-#       #message("Constraints conditions not met or improved - trade not approved")
-#     } else {
-#       constraints_passed <- TRUE
-#     }
-#
-#   } else {
-#     constraints_passed <- TRUE
-#   }
-#
-#   constraints_passed
-# }
-
-#
-#
-# compare_constraints <- function(pobj1, pobj2, cobj, eobj){
-#   checkmate::assert_class(pobj1, "portfolio")
-#   checkmate::assert_class(pobj2, "portfolio")
-#   checkmate::assert_class(cobj, "constraints")
-#   checkmate::assert_class(eobj, "estimates")
-#
-#   # compare new constraints to intial state
-#   check_constraints(cobj, pobj2, eobj) %>%
-#     select(id, old_value = value) %>%
-#     dplyr::inner_join(check_constraints(cobj, pobj1, eobj), by = "id") %>%
-#     dplyr::mutate_at(c("value", "old_value"), funs(round(., 4))) %>%
-#     dplyr::mutate(
-#       improve = check,
-#       improve = ifelse(!improve &
-#                          old_value < min & value >= old_value, TRUE, improve),
-#       improve = ifelse(!improve &
-#                          old_value > max & value <= old_value, TRUE, improve)
-#     )
-# }
-
 
 
 
@@ -523,23 +463,6 @@ nbto <- function(pobj,
       mutate(selected = ifelse(id %in% all_ids , selected + 1, selected),
              active = ifelse(id %in% active_ids, TRUE, FALSE),
              trades = ifelse(id %in% opt_port_id, trades + 1, trades))
-    #
-    # if(as.numeric(opt_port_id) != 0) {
-    #   trade_pairs <- trade_pairs %>%
-    #     left_join(
-    #       data.frame(id = active_ids,
-    #                  active = active_trades) %>%
-    #         dplyr::mutate(s = 1, t = ifelse(id == as.numeric(opt_port_id), 1, 0)),
-    #       by = "id"
-    #     ) %>%
-    #     tidyr::replace_na(list(s = 0, t = 0)) %>%
-    #     dplyr::mutate(selected = selected + s,
-    #                   trades = trades + t) %>%
-    #     dplyr::mutate(active = ifelse(is.na(active.x), active.y, active.x)) %>%
-    #     # dplyr::mutate(active = ifelse(buy == sell[t==1] & buy != "CASH", FALSE, active)) %>%
-    #     # dplyr::mutate(active = ifelse(sell == buy[t==1] & sell != "CASH", FALSE, active)) %>%
-    #     dplyr::select(-s,-t, -active.x, -active.y)
-    # }
   }
 
   list(portfolio = port, trade_pairs = trade_pairs)
@@ -660,19 +583,29 @@ optimize <- function(obj,
       update_trade_pairs = TRUE
     )
 
-    # Update Obj
+    # Update Portfolio Objs
     obj$optimal_portfolio <- nbto_opt$portfolio
+    obj$portfolios <- c(obj$portfolios, list(nbto_opt$portfolio))
+    obj$portfolio_values <- obj$portfolio_values %>% rbind(
+      get_estimated_port_values(nbto_opt$portfolio, obj$estimates) %>%
+        dplyr::mutate(iter = i + prev_iter)
+    )
+
+    # Update Trade Pairs
     obj$trade_pairs <- rbind(
       nbto_opt$trade_pairs,
       obj$trade_pairs %>%
         dplyr::filter(!id %in% nbto_opt$trade_pairs$id)
     ) %>%
       arrange(-delta)
-    obj$portfolios <- c(obj$portfolios, list(nbto_opt$portfolio))
-    obj$portfolio_values <- obj$portfolio_values %>% rbind(
-      get_estimated_port_values(nbto_opt$portfolio, obj$estimates) %>%
-        dplyr::mutate(iter = i + prev_iter)
-    )
+    syms_held <- obj$optimal_portfolio %>%
+      get_holdings() %>%
+      dplyr::pull(symbol) %>%
+      unique() %>%
+      as.character()
+    obj$trade_pairs <- obj$trade_pairs %>%
+      dplyr::mutate(active = ifelse(! sell %in% syms_held, FALSE, active))
+
 
     if(plot_iter) print(po_target_chart(obj))
 
@@ -817,7 +750,7 @@ po_constraints_charts <- function(obj) {
     ggplot(., aes(x=as.numeric(iter), y=value, group=args)) +
     geom_ribbon(aes(ymin = min, max = ifelse(max == Inf, value, max)), color="grey75", alpha=.25) +
     geom_line(color = "blue") +
-    geom_point(size = 2, shape=1, color ="blue") +
+    geom_point(size = 2, shape = 1, color ="blue") +
     facet_wrap(~type+args, scales = "free") +
     scale_color_madstork() +
     theme_minimal() +
@@ -840,7 +773,7 @@ po_target_chart <- function(obj) {
 
   ggplot(obj$portfolio_values, aes_string(x='iter', y=obj$target)) +
     geom_line(size=1.05, color=madstork_pal()(1)) +
-    geom_point(size=4, color=madstork_pal()(1), shape = 1) +
+    geom_point(size = 2, color=madstork_pal()(1), shape = 1) +
     theme_minimal() +
     labs(title = "Madstork Next Best Trade Optimization",
          subtitle = paste("Iteration", max(obj$portfolio_values$iter)),

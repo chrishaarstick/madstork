@@ -506,7 +506,7 @@ meet_constraint.cash_constraint <- function(constraint,
   cc <- check_constraint(constraint, port)
   check <- cc$check
   iter <- 0
-  while(!check) {
+  while (!check) {
 
     share_amount <- cc$value - cc$min
     if(share_amount < 0) {

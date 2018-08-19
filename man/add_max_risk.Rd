@@ -9,7 +9,7 @@ add_max_risk(constraints, max = NULL)
 \arguments{
 \item{constraints}{constraints object}
 
-\item{min}{maximum risk value}
+\item{max}{maximum risk value}
 }
 \value{
 updated constraints object

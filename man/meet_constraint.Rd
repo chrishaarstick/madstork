@@ -10,7 +10,7 @@
 \title{Meet Constraint}
 \usage{
 meet_constraint(constraint, portfolio, constraints, estimates, prices,
-  trade_pairs, minimize, target, amount, lot_size, max_iter)
+  trade_pairs, minimize, target, amount, lot_size, max_iter, ...)
 
 \method{meet_constraint}{symbol_constraint}(constraint, portfolio, constraints,
   estimates, prices, trade_pairs, target, minimize, amount, lot_size,
@@ -52,6 +52,8 @@ meet_constraint(constraint, portfolio, constraints, estimates, prices,
 \item{lot_size}{trade lot minimum size}
 
 \item{max_iter}{maximum number of iterations for nbto}
+
+\item{...}{additional parameters. not currently implemented}
 }
 \value{
 data.frame with summary of constraint check

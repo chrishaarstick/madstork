@@ -10,7 +10,7 @@
 \title{Check Constraint}
 \usage{
 check_constraint(constraint, portfolio = NULL, holdings = NULL,
-  stats = NULL)
+  stats = NULL, ...)
 
 \method{check_constraint}{symbol_constraint}(constraint, holdings, ...)
 
@@ -30,6 +30,8 @@ check_constraint(constraint, portfolio = NULL, holdings = NULL,
 \item{holdings}{portfolio holdings}
 
 \item{stats}{portfolio statistics}
+
+\item{...}{additional parameters. not currently implemented}
 }
 \value{
 data.frame with summary of constraint check

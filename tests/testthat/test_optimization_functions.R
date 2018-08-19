@@ -9,16 +9,36 @@ library(checkmate)
 
 context("Optimization Functionality")
 
-# Set  params
-port_amount <- 100000
-
-# Estimates params
-yrs <- 10
-.symbols <- c("SPY", "QQQ", "TLT", "GLD")
-.grain <- "year"
-.periods <- 1
+#
+#
+# # Estimates params
+# yrs <- 10
+# .symbols <- c("SPY", "QQQ", "TLT", "GLD")
+# .grain <- "year"
+# .periods <- 1
 
 # Optimization params
+
+
+# Set Estimates Class
+e1 <- test_estimates
+# e1 <- estimates(symbols = .symbols,
+#                 start_date = Sys.Date() - years(yrs),
+#                 end_date = Sys.Date(),
+#                 grain = .grain,
+#                 periods = .periods) %>%
+#   add_sample_mu() %>%
+#   add_sample_sigma() %>%
+#   add_dividends()
+
+# Prices
+#prices <- get_current_prices(.symbols, dividends = TRUE)
+prices <- test_prices
+p <- prices %>% split(.$symbol) %>% map("price")
+
+
+# Set  params
+port_amount <- 100000
 trade_amount <- 2000
 .lot_size <- 1
 .max_runtime <- 30
@@ -26,19 +46,6 @@ trade_amount <- 2000
 .max_iters <- 10
 .improve_lag <- 10
 
-# Create Estimates Class
-e1 <- estimates(symbols = .symbols,
-                start_date = Sys.Date() - years(yrs),
-                end_date = Sys.Date(),
-                grain = .grain,
-                periods = .periods) %>%
-  add_sample_mu() %>%
-  add_sample_sigma() %>%
-  add_dividends()
-
-# Prices
-prices <- get_current_prices(.symbols, dividends = TRUE)
-p <- prices %>% split(.$symbol) %>% map("price")
 
 # Create Portfolio
 p1 <- portfolio("new_port", cash=0) %>%
