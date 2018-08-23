@@ -565,7 +565,9 @@ optimize <- function(obj,
       break
     } else {
       tp_smpl <- tp_actives %>%
-        dplyr::top_n(min(trade_pairs, tp_nactives), wt = delta)
+       # dplyr::top_n(min(trade_pairs, tp_nactives), wt = delta)
+        dplyr::mutate(delta = (delta - min(delta)) / max(delta)) %>%
+        dplyr::sample_n(min(trade_pairs, tp_nactives), weight = delta^3)
     }
 
     # Run NBTO
@@ -634,7 +636,16 @@ optimize <- function(obj,
   # Get Consoldated trades
   new_trades <- dplyr::anti_join(obj$optimal_portfolio %>% get_trades(),
                                  obj$portfolios[[1]] %>% get_trades(),
-                                 by="id")
+                                 by="id") %>%
+    dplyr::group_by(date_added, transaction_date, symbol, price, desc) %>%
+    dplyr::summarise(net = sum(quantity[type == "buy"]) - sum(quantity[type == "sell"])) %>%
+    ungroup() %>%
+    dplyr::filter(net != 0) %>%
+    dplyr::mutate(type = ifelse(net < 0, "sell", "buy"),
+                  quantity = abs(net), amount = price * quantity,
+                  id = row_number()) %>%
+    dplyr::select(id, date_added, transaction_date, type, symbol, quantity, price, amount, desc)
+
   new_sells <- new_trades %>%
     dplyr::filter(type == "sell")
   new_buys <- new_trades %>%
