@@ -4,8 +4,8 @@
 \alias{get_dividends}
 \title{Get Security Historical Dividends}
 \usage{
-get_dividends(symbols, start_date = "1990-01-01", end_date = Sys.Date(),
-  error_handling = "pass")
+get_dividends(symbols, start_date = "1990-01-01",
+  end_date = Sys.Date(), error_handling = "pass")
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}

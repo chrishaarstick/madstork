@@ -4,8 +4,8 @@
 \alias{scale_color_madstork}
 \title{Color scale constructor for madstork colors}
 \usage{
-scale_color_madstork(palette = "main", discrete = TRUE, reverse = FALSE,
-  ...)
+scale_color_madstork(palette = "main", discrete = TRUE,
+  reverse = FALSE, ...)
 }
 \arguments{
 \item{palette}{Character name of palette in madstork_palettes}

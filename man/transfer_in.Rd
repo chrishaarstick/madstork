@@ -4,7 +4,8 @@
 \alias{transfer_in}
 \title{Transfer In Holdings function}
 \usage{
-transfer_in(pobj, date = Sys.Date(), symbol, quantity, price, desc = "")
+transfer_in(pobj, date = Sys.Date(), symbol, quantity, price,
+  desc = "")
 }
 \arguments{
 \item{pobj}{portfolio object}

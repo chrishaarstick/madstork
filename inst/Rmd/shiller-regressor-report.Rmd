@@ -68,7 +68,7 @@ raw <- readxl::read_excel(path = destfile,
                          skip = 7,
                          col_names = TRUE,
                          col_types = c("text", rep("numeric", 12)))
-file.remove(destfile)
+# file.remove(destfile)
 ```
 
 
