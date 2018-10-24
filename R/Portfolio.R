@@ -87,7 +87,7 @@ portfolio <- function(name,
 #' portfolio("new_port", cash = 100) %>%
 #' get_cash(.)
 get_cash <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   pobj$cash
 }
 
@@ -110,7 +110,7 @@ get_cash <- function(pobj) {
 #' make_deposit(amount = 100) %>%
 #' get_activity(.)
 get_activity <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   a <- pobj$activity
   if (nrow(a) == 0) {
     a
@@ -144,7 +144,7 @@ get_activity <- function(pobj) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_trades(.)
 get_trades <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   t <- pobj$trades
   if (nrow(t) == 0) {
@@ -183,12 +183,13 @@ get_trades <- function(pobj) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_holdings(.)
 get_holdings <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   h <- pobj$holdings
   if (nrow(h) == 0) {
     h
   } else{
     h %>%
+      dplyr::mutate_at("symbol", as.character) %>%
       dplyr::select_at(c(
         "id",
         "date_added",
@@ -210,7 +211,7 @@ get_holdings <- function(pobj) {
 #' @return holding with id == .id
 #' @export
 get_holding <- function(pobj, .id) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   stopifnot(is.numeric(.id))
   h <- pobj$holdings
   if (nrow(h) == 0) {
@@ -248,7 +249,7 @@ get_holding <- function(pobj, .id) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_gains(.)
 get_gains <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   g <- pobj$gains
   if (nrow(g) == 0) {
     g
@@ -285,7 +286,7 @@ get_gains <- function(pobj) {
 #' portfolio("new_port", cash = 100) %>%
 #' get_tax_liability(.)
 get_tax_liability <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   pobj$tax_liability
 }
 
@@ -311,7 +312,7 @@ get_tax_liability <- function(pobj) {
 #'  make_sell(id = 1, quantity = 5, price = 105) %>%
 #'  settle_tax_liability(amount = 7.5, withdraw = TRUE)
 settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FALSE){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   if(withdraw){
     pobj <- make_withdraw(pobj, date, amount, desc = "Tax Payment")
@@ -338,7 +339,7 @@ settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FAL
 #' portfolio("new_port", cash = 100) %>%
 #' get_income(.)
 get_income <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   i <- pobj$income
   if (nrow(i) == 0) {
     i
@@ -368,6 +369,8 @@ get_income <- function(pobj) {
 #' Calculates market value, income and yield
 #'
 #' @param pobj portfolio object
+#' @param prices data.frame with symbol prices. requires symbol, and price
+#'   columns
 #'
 #' @return data.frame with portfolio's holdings market value
 #' @export
@@ -382,30 +385,21 @@ get_income <- function(pobj) {
 #'  update_holdings_market_value(p1)
 #' }
 #'
-update_holdings_market_value <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+update_holdings_market_value <- function(pobj, prices = NULL) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_data_frame(prices, null.ok = TRUE)
   holdings <- get_holdings(pobj)
-  symbols <- holdings$symbol
-  prices <- get_current_prices(symbols)
-  dividends <- get_annual_dividends(symbols)
+  symbols <- unique(holdings$symbol)
+
+  if(is.null(prices)) {
+    prices <- get_current_prices(symbols = symbols)
+  }
+  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
+  checkmate::assert_subset(symbols, prices$symbol)
 
   holdings %>%
-    dplyr::select(symbol, quantity, price, date_added) %>%
-    dplyr::rename(cost = price) %>%
-    dplyr::inner_join(prices %>%
-                        select(symbol, price, last_updated),
-                      by = "symbol") %>%
-    dplyr::inner_join(dividends %>%
-                        select(symbol, annual_dividend) %>%
-                        rename(dividend = annual_dividend),
-                      by = "symbol") %>%
-    dplyr::group_by(last_updated,
-                    symbol,
-                    price,
-                    dividend) %>%
-    dplyr::summarise(quantity = sum(quantity),
-                     cost = weighted.mean(cost, quantity)) %>%
-    dplyr::ungroup() %>%
+    dplyr::select(id, symbol, quantity, cost = price, date_added) %>%
+    dplyr::inner_join(prices, by = "symbol") %>%
     dplyr::mutate(
       market_value = quantity * price,
       cost_basis = quantity * cost,
@@ -416,6 +410,7 @@ update_holdings_market_value <- function(pobj) {
       portfolio_share = market_value/(sum(market_value)+get_cash(pobj))
     ) %>%
     dplyr::select_at(c(
+      "id",
       "last_updated",
       "symbol",
       "quantity",
@@ -428,8 +423,7 @@ update_holdings_market_value <- function(pobj) {
       'yield',
       "investments_share",
       "portfolio_share"
-    )) %>%
-    as.data.frame()
+    ))
 }
 
 #' Update Porfolio Market Value
@@ -439,7 +433,7 @@ update_holdings_market_value <- function(pobj) {
 #' Function appends portfolio's market value record for historical analysis and
 #' overwrites the holdings market value
 #'
-#' @param pobj portfolio object
+#' @inheritParams update_holdings_market_value
 #'
 #' @return Updated Porfolio object with new market value
 #' @export
@@ -452,11 +446,11 @@ update_holdings_market_value <- function(pobj) {
 #'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
 #'  update_market_value(p1)
 #' }
-update_market_value <- function(pobj) {
-  stopifnot(class(pobj) == "portfolio")
+update_market_value <- function(pobj, prices = NULL) {
+  checkmate::assert_class(pobj, "portfolio")
 
   holdings <- get_holdings(pobj)
-  holdings_market_value <- update_holdings_market_value(pobj)
+  holdings_market_value <- update_holdings_market_value(pobj, prices)
 
   current_market_value <- data.frame(
     last_updated = Sys.time(),
@@ -469,8 +463,7 @@ update_market_value <- function(pobj) {
     dplyr::mutate(net_value = cash + investments_value - loans - tax_liability)
 
   pobj$holdings_market_value <- holdings_market_value
-  pobj$market_value <-
-    rbind(pobj$market_value, current_market_value)
+  pobj$market_value <- rbind(pobj$market_value, current_market_value)
 
   pobj
 }
@@ -484,7 +477,7 @@ update_market_value <- function(pobj) {
 #' @return data.frame with portfolio's market value
 #' @export
 get_market_value <- function(pobj){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   pobj$market_value
 }
@@ -497,9 +490,26 @@ get_market_value <- function(pobj){
 #' @return data.frame with portfolio holdings market value
 #' @export
 get_holdings_market_value <- function(pobj){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   pobj$holdings_market_value
+}
+
+
+#' Get Share of Total Portfolio By Symbol
+#'
+#' Aggregates holdings portfolio share to symbol
+#'
+#' @param pobj portfolio object
+#'
+#' @return data.frame with portfolio share by symbol
+#' @export
+get_symbol_portfolio_share <- function(pobj) {
+  checkmate::assert_class(pobj, "portfolio")
+
+  pobj$holdings_market_value %>%
+    dplyr::group_by(symbol) %>%
+    dplyr::summarise_at("portfolio_share", sum)
 }
 
 
@@ -507,7 +517,7 @@ get_holdings_market_value <- function(pobj){
 #'@export
 #'@rdname print
 print.portfolio <- function(pobj){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
 
   cat("Portfolio", pobj$name, "\n")
   cat("---------------------------", "\n")
@@ -550,7 +560,7 @@ print.portfolio <- function(pobj){
 #'
 #' @export
 save_portfolio <- function(pobj, path, overwrite = TRUE){
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   stopifnot(tools::file_ext(path) == "RData")
 
   if(overwrite){

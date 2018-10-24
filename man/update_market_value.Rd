@@ -4,10 +4,13 @@
 \alias{update_market_value}
 \title{Update Porfolio Market Value}
 \usage{
-update_market_value(pobj)
+update_market_value(pobj, prices = NULL)
 }
 \arguments{
 \item{pobj}{portfolio object}
+
+\item{prices}{data.frame with symbol prices. requires symbol, and price
+columns}
 }
 \value{
 Updated Porfolio object with new market value

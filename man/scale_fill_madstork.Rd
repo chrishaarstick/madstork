@@ -4,8 +4,8 @@
 \alias{scale_fill_madstork}
 \title{Fill scale constructor for madstork colors}
 \usage{
-scale_fill_madstork(palette = "main", discrete = TRUE, reverse = FALSE,
-  ...)
+scale_fill_madstork(palette = "main", discrete = TRUE,
+  reverse = FALSE, ...)
 }
 \arguments{
 \item{palette}{Character name of palette in madstork_palettes}

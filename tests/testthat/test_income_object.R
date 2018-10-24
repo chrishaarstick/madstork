@@ -3,6 +3,7 @@
 
 library(madstork)
 library(tidyverse)
+library(testthat)
 
 context("Income Class")
 

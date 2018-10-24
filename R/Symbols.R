@@ -1,8 +1,6 @@
 
 
 
-
-
 #' Get Securities Price and Volume Data
 #'
 #' Wrapper function to get historical security prices for 1 or more symbols.
@@ -11,9 +9,9 @@
 #'
 #' @param symbols vector of stock symbol characters. can be 1 or more
 #' @param start_date starting date for historical prices. default is
-#'   '1990-01-01'. %Y-%m-%d format required
+#'   '1990-01-01'. Y-m-d format required
 #' @param end_date ending date for historical prices. default is current date.
-#'   %Y-%m-%d format required
+#'   Y-m-d format required
 #' @param error_handling option to handle errors within foreach loop. options
 #'   are 'pass', 'remove', or 'stop'
 #' @param warning logical argument to print getSymbol warnings to console
@@ -26,7 +24,7 @@
 #' @importFrom foreach foreach %do%
 #' @importFrom zoo index
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
@@ -37,6 +35,12 @@ get_ochlav <- function(symbols,
                        end_date = Sys.Date(),
                        error_handling = "pass",
                        warning = FALSE) {
+  checkmate::assert_character(symbols)
+  checkmate::assert_date(as.Date(start_date))
+  checkmate::assert_date(as.Date(end_date))
+  checkmate::assert_flag(warning)
+  checkmate::assert_choice(error_handling, c("pass", "remove", "stop"))
+
   foreach(
     sym = toupper(symbols),
     .combine = "rbind",
@@ -77,7 +81,7 @@ get_ochlav <- function(symbols,
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
@@ -102,21 +106,26 @@ get_prices <- function(symbols,
 #' timestamp of date pulled
 #'
 #' @inheritParams get_ochlav
+#' @param dividends logical option to add current annual dividend amount to
+#'   output
 #'
 #' @return data.frame with 1 record per symbol with current adjusted close price
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
 #' prices <- symbols %>% get_current_prices(.)
 #' }
 get_current_prices <- function(symbols,
+                               dividends = FALSE,
                                error_handling = "pass",
                                warning = FALSE) {
-  get_prices(
+  checkmate::assert_flag(dividends)
+
+  prices <- get_prices(
     symbols,
     start_date = Sys.Date() - 5,
     end_date = Sys.Date(),
@@ -128,6 +137,15 @@ get_current_prices <- function(symbols,
     dplyr::ungroup() %>%
     dplyr::mutate(last_updated = Sys.time()) %>%
     dplyr::select_at(c("last_updated", "symbol", "price"))
+
+  if(dividends) {
+    prices %>%
+      inner_join(get_annual_dividends(symbols) %>%
+                   dplyr::select(symbol, dividend = annual_dividend),
+                 by = "symbol")
+  }else {
+    prices
+  }
 }
 
 
@@ -138,9 +156,9 @@ get_current_prices <- function(symbols,
 #'
 #' @param symbols vector of stock symbol characters. can be 1 or more
 #' @param start_date starting date for historical dividends. default is
-#'   '1990-01-01'. %Y-%m-%d format required
+#'   '1990-01-01'. Y-m-d format required
 #' @param end_date ending date for historical dividends. default is current date.
-#'   %Y-%m-%d format required
+#'   Y-m-d format required
 #' @param error_handling option to handle errors within foreach loop. options
 #'   are 'pass', 'remove', or 'stop'
 #'
@@ -149,7 +167,7 @@ get_current_prices <- function(symbols,
 #' @importFrom quantmod getDividends
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")
@@ -202,7 +220,7 @@ get_dividends <- function(symbols,
 #' @export
 #'
 #' @examples
-#' \dontrun{
+#' \donttest{
 #' library(tidyverse)
 #' library(quantmod)
 #' symbols <- c("spy", "tlt")

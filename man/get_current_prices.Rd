@@ -4,10 +4,14 @@
 \alias{get_current_prices}
 \title{Get Current Security Prices}
 \usage{
-get_current_prices(symbols, error_handling = "pass", warning = FALSE)
+get_current_prices(symbols, dividends = FALSE, error_handling = "pass",
+  warning = FALSE)
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}
+
+\item{dividends}{logical option to add current annual dividend amount to
+output}
 
 \item{error_handling}{option to handle errors within foreach loop. options
 are 'pass', 'remove', or 'stop'}
@@ -22,7 +26,7 @@ Wrapper function around get_prices function that returns current prices. Adds
 timestamp of date pulled
 }
 \examples{
-\dontrun{
+\donttest{
 library(tidyverse)
 library(quantmod)
 symbols <- c("spy", "tlt")

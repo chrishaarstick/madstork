@@ -8,6 +8,8 @@ capitalize(x, first_only = FALSE)
 }
 \arguments{
 \item{x}{vector of character strings}
+
+\item{first_only}{first word only}
 }
 \value{
 vector of capitalized character strings

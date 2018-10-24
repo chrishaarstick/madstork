@@ -4,7 +4,7 @@
 \alias{report.portfolio}
 \title{Portfolio Performance Report}
 \usage{
-\method{report}{portfolio}(portfolio, output_file, output_dir)
+\method{report}{portfolio}(portfolio, output_file, output_dir, ...)
 }
 \arguments{
 \item{portfolio}{portfolio object}

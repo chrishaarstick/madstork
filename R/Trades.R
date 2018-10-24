@@ -221,7 +221,7 @@ sell <- function(date,
 #' history and holdings
 #'
 #' @param pobj portfolio object
-#' @param id trade id of holding to sell
+#' @param id holding id to sell
 #' @param trans_cost transaction cost (dollars per share)
 #' @inheritParams sell
 #' @importFrom magrittr %>%
@@ -242,8 +242,8 @@ make_sell <- function(pobj,
                       price,
                       desc = "",
                       trans_cost = .05) {
-  stopifnot(class(pobj) == "portfolio")
-  stopifnot(class(id) == "numeric")
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_number(id)
   holding <- pobj %>% get_holding(id)
   Id <- id
 
@@ -265,6 +265,7 @@ make_sell <- function(pobj,
 
   new_holding <- holding
   new_holding$quantity <- new_holding$quantity - trade$quantity
+  if(new_holding$quantity == 0) new_holding <- NULL
   gain <- gains(trade, holding) %>%
     add_tax_liability() %>%
     dplyr::mutate(id = max(pobj$gains$id, 0) + 1)

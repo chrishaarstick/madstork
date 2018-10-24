@@ -11,10 +11,10 @@ get_prices(symbols, start_date = "1990-01-01", end_date = Sys.Date(),
 \item{symbols}{vector of stock symbol characters. can be 1 or more}
 
 \item{start_date}{starting date for historical prices. default is
-'1990-01-01'. %Y-%m-%d format required}
+'1990-01-01'. Y-m-d format required}
 
 \item{end_date}{ending date for historical prices. default is current date.
-%Y-%m-%d format required}
+Y-m-d format required}
 
 \item{error_handling}{option to handle errors within foreach loop. options
 are 'pass', 'remove', or 'stop'}
@@ -31,7 +31,7 @@ Wrapper function around get_ochlav function that returns historical securtity pr
 Prices are set to adjusted close
 }
 \examples{
-\dontrun{
+\donttest{
 library(tidyverse)
 library(quantmod)
 symbols <- c("spy", "tlt")

@@ -102,9 +102,10 @@ rbind(
     summarise_at(c("cash", "investments_value", "net_value"),
                  .funs = funs(tail(., 1)/head(., 1) - 1))
 ) %>% 
-  mutate(period = c("day", "week", "month", "ytd", "year")) %>% 
-  gather(metric, value, -period) %>%
-  spread(period, value = value) %>% 
+  dplyr::mutate(period = c("day", "week", "month", "ytd", "year")) %>% 
+  tidyr::gather(metric, value, -period) %>%
+  tidyr::spread(period, value = value) %>% 
+  dplyr::select(metric, day, week, month, ytd, year) %>% 
   formattable(.,
               list(
                 day = formatter("span",

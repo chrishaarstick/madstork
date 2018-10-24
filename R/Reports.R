@@ -1,6 +1,8 @@
 
 
 #' Generic Report Function
+#'
+#' @param ... additional parameters to pass to rmarkdown::render function
 #' @export
 report <- function(...) {
   UseMethod("report")
@@ -21,10 +23,12 @@ report.portfolio <- function(portfolio,
                              output_file = "performance-report.html",
                              output_dir = getwd(),
                              pandoc_dir = "C:/Program Files/RStudio/bin/pandoc") {
+
   checkmate::assert_directory(output_dir)
   checkmate::assert_character(output_file, pattern = ".html")
   template <- system.file("Rmd", "portfolio_report.Rmd", package = "madstork")
   checkmate::assert_file_exists(template)
+
   Sys.setenv(RSTUDIO_PANDO = pandoc_dir)
   rmarkdown::render(
     input = template,
