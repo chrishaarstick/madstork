@@ -63,8 +63,7 @@ get_ochlav <- function(symbols,
         paste0(sym, "."), "", .
       )))) %>%
       dplyr::rename(adj_close = adjusted) %>%
-      dplyr::mutate(date = as.Date(date),
-                    symbol = as.character(sym)) %>%
+      dplyr::mutate(date = as.Date(date), symbol = as.character(sym)) %>%
       dplyr::select(date, symbol, open, close, high, low, adj_close, volume)
   }
 }
