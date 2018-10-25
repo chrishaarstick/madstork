@@ -76,7 +76,8 @@ validate_trade <- function(x) {
 }
 
 
-# Internal function to convert trade to data.frame
+#' Function to convert trade to data.frame
+#' @export
 as.data.frame.trade <- function(x) {
   data.frame(
     date_added = as.Date(x$date_added),

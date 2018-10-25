@@ -4,14 +4,18 @@
 \alias{report.portfolio}
 \title{Portfolio Performance Report}
 \usage{
-\method{report}{portfolio}(portfolio, output_file, output_dir, ...)
+\method{report}{portfolio}(portfolio,
+  output_file = "performance-report.html", output_dir = getwd(),
+  pandoc_dir = "C:/Program Files/RStudio/bin/pandoc")
 }
 \arguments{
 \item{portfolio}{portfolio object}
 
 \item{output_file}{name of output file. Needs a html extension}
 
-\item{output_dir}{directory to file folder to}
+\item{output_dir}{directory to write output file to}
+
+\item{pandoc_dir}{pandoc directory path}
 }
 \description{
 Function to create a Porftolio Performance Report for input Portfolio.
