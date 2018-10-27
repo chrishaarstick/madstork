@@ -515,6 +515,7 @@ get_symbol_portfolio_share <- function(pobj) {
 
 
 #'@export
+<<<<<<< HEAD
 print.portfolio <- function(x, ...){
   checkmate::assert_class(x, "portfolio")
 
