@@ -13,6 +13,8 @@
 #' @param purchase_price cost basis. numeric type
 #' @param sale_date date of sale. Date type
 #' @param sale_price sale price
+#' @param gain gain amount. numeric type
+#' @param type gain type. short or long term types. character type
 #'
 #' @return obj of class gains
 #' @export

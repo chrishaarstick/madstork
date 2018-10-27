@@ -140,9 +140,9 @@ get_current_prices <- function(symbols,
 
   if(dividends) {
     prices %>%
-      inner_join(get_annual_dividends(symbols) %>%
-                   dplyr::select(symbol, dividend = annual_dividend),
-                 by = "symbol")
+      dplyr::inner_join(get_annual_dividends(symbols) %>%
+                          dplyr::select(symbol, dividend = annual_dividend),
+                        by = "symbol")
   }else {
     prices
   }

@@ -4,7 +4,12 @@
 \alias{as.data.frame.trade}
 \title{Function to convert trade to data.frame}
 \usage{
-\method{as.data.frame}{trade}(x)
+\method{as.data.frame}{trade}(x, ...)
+}
+\arguments{
+\item{x}{trade object}
+
+\item{...}{additional arguments. not currently implemented}
 }
 \description{
 Function to convert trade to data.frame

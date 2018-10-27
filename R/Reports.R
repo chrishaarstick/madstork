@@ -18,11 +18,14 @@ report <- function(...) {
 #' @param output_file name of output file. Needs a html extension
 #' @param output_dir directory to write output file to
 #' @param pandoc_dir pandoc directory path
+#' @param ... additional parameters to pass to rmarkdown::render function
+#'
 #' @export
 report.portfolio <- function(portfolio,
                              output_file = "performance-report.html",
                              output_dir = getwd(),
-                             pandoc_dir = "C:/Program Files/RStudio/bin/pandoc") {
+                             pandoc_dir = "C:/Program Files/RStudio/bin/pandoc",
+                             ...) {
 
   checkmate::assert_directory(output_dir)
   checkmate::assert_character(output_file, pattern = ".html")

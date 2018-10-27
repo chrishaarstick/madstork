@@ -6,7 +6,7 @@
 \usage{
 \method{report}{portfolio}(portfolio,
   output_file = "performance-report.html", output_dir = getwd(),
-  pandoc_dir = "C:/Program Files/RStudio/bin/pandoc")
+  pandoc_dir = "C:/Program Files/RStudio/bin/pandoc", ...)
 }
 \arguments{
 \item{portfolio}{portfolio object}
@@ -16,6 +16,8 @@
 \item{output_dir}{directory to write output file to}
 
 \item{pandoc_dir}{pandoc directory path}
+
+\item{...}{additional parameters to pass to rmarkdown::render function}
 }
 \description{
 Function to create a Porftolio Performance Report for input Portfolio.

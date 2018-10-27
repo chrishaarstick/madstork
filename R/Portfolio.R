@@ -218,7 +218,7 @@ get_holding <- function(pobj, .id) {
     NULL
   } else{
     h %>%
-      dplyr::filter_at('id',  any_vars(. == .id)) %>%
+      dplyr::filter_at('id', dplyr::any_vars(. == .id)) %>%
       dplyr::select_at(c(
         "id",
         "date_added",
@@ -515,15 +515,14 @@ get_symbol_portfolio_share <- function(pobj) {
 
 
 #'@export
-#'@rdname print
-print.portfolio <- function(pobj){
-  checkmate::assert_class(pobj, "portfolio")
+print.portfolio <- function(x, ...){
+  checkmate::assert_class(x, "portfolio")
 
-  cat("Portfolio", pobj$name, "\n")
+  cat("Portfolio", x$name, "\n")
   cat("---------------------------", "\n")
 
-  if(nrow(pobj$market_value)>0){
-    mv <- dplyr::filter(pobj$market_value, last_updated == max(last_updated))
+  if(nrow(x$market_value)>0){
+    mv <- dplyr::filter(x$market_value, last_updated == max(last_updated))
     cat("Market Value as of:", as.character(mv$last_updated), "\n")
     cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
     cat("* Investments ", scales::dollar(mv$investments_value), "\n")
@@ -531,9 +530,9 @@ print.portfolio <- function(pobj){
     cat("* Annual Income", scales::dollar(mv$investments_annual_income),"\n\n")
   }
 
-  if(nrow(pobj$holdings_market_value) > 0){
+  if(nrow(x$holdings_market_value) > 0){
     cat("Top 5 Holdings by Market Value:", "\n")
-    pobj$holdings_market_value %>%
+    x$holdings_market_value %>%
       dplyr::top_n(5, market_value) %>%
       dplyr::arrange(-market_value) %>%
       dplyr::select(symbol, market_value, cost_basis, unrealized_gain) %>%
@@ -542,7 +541,7 @@ print.portfolio <- function(pobj){
   }
 
   cat("Recent Activity:", '\n')
-  get_activity(pobj) %>%
+  get_activity(x) %>%
     dplyr::top_n(5, id) %>%
     dplyr::arrange(-id) %>%
     print()

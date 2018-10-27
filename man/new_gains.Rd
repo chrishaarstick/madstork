@@ -19,6 +19,10 @@ new_gains(symbol, quantity, purchase_date, purchase_price, sale_date,
 \item{sale_date}{date of sale. Date type}
 
 \item{sale_price}{sale price}
+
+\item{gain}{gain amount. numeric type}
+
+\item{type}{gain type. short or long term types. character type}
 }
 \value{
 obj of class gains
