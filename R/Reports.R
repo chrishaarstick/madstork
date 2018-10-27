@@ -22,7 +22,8 @@ report <- function(...) {
 report.portfolio <- function(portfolio,
                              output_file = "performance-report.html",
                              output_dir = getwd(),
-                             pandoc_dir = "C:/Program Files/RStudio/bin/pandoc") {
+                             pandoc_dir = "C:/Program Files/RStudio/bin/pandoc",
+                             ...) {
 
   checkmate::assert_directory(output_dir)
   checkmate::assert_character(output_file, pattern = ".html")
