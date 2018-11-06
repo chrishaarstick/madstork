@@ -392,7 +392,7 @@ update_holdings_market_value <- function(pobj, prices = NULL) {
   symbols <- unique(holdings$symbol)
 
   if(is.null(prices)) {
-    prices <- get_current_prices(symbols = symbols)
+    prices <- get_current_prices(symbols = symbols, dividends = TRUE)
   }
   checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
   checkmate::assert_subset(symbols, prices$symbol)
