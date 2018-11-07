@@ -5,7 +5,7 @@
 \title{Get Security Historical Dividends}
 \usage{
 get_dividends(symbols, start_date = "1990-01-01",
-  end_date = Sys.Date(), error_handling = "pass")
+  end_date = Sys.Date())
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}
@@ -15,9 +15,6 @@ get_dividends(symbols, start_date = "1990-01-01",
 
 \item{end_date}{ending date for historical dividends. default is current date.
 Y-m-d format required}
-
-\item{error_handling}{option to handle errors within foreach loop. options
-are 'pass', 'remove', or 'stop'}
 }
 \value{
 tibble with a record for each dividend distrubtion per security
@@ -28,7 +25,6 @@ Wrapper function around quantmod::getDividend function
 \examples{
 \donttest{
 library(tidyverse)
-library(quantmod)
 symbols <- c("spy", "tlt")
 dividends <- symbols \%>\% get_dividends(., start_date = "2016-01-01")
 }

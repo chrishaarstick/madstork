@@ -159,8 +159,6 @@ get_current_prices <- function(symbols,
 #'   '1990-01-01'. Y-m-d format required
 #' @param end_date ending date for historical dividends. default is current date.
 #'   Y-m-d format required
-#' @param error_handling option to handle errors within foreach loop. options
-#'   are 'pass', 'remove', or 'stop'
 #'
 #' @return tibble with a record for each dividend distrubtion per security
 #' @export
@@ -169,39 +167,34 @@ get_current_prices <- function(symbols,
 #' @examples
 #' \donttest{
 #' library(tidyverse)
-#' library(quantmod)
 #' symbols <- c("spy", "tlt")
 #' dividends <- symbols %>% get_dividends(., start_date = "2016-01-01")
 #' }
 get_dividends <- function(symbols,
                           start_date = "1990-01-01",
-                          end_date = Sys.Date(),
-                          error_handling = "pass") {
-  foreach(
-    sym = toupper(symbols),
-    .combine = "rbind",
-    .errorhandling = error_handling
-  ) %do% {
-    div <- getDividends(sym,
-                        from = start_date,
-                        to = end_date)
+                          end_date = Sys.Date()) {
+  purrr::map_dfr(symbols, ~get_dividend(., start_date, end_date))
+}
 
-    if(nrow(div) == 0){
-      tibble(date = end_date,
-                 symbol = sym,
-               dividend = 0)
-    }else{
-     tibble(div) %>%
-        dplyr::rename_all(dplyr::funs(tolower(gsub(
-          paste0(sym, "."), "", .
-        )))) %>%
-        dplyr::rename(dividend = div) %>%
-        dplyr::mutate(symbol = as.character(sym),
-                      date = as.Date(index(div))) %>%
-        dplyr::select_at(c("date", "symbol", "dividend"))
-    }
+
+# Internal get dividend helper function
+get_dividend <- function(symbol, start_date, end_date) {
+  checkmate::assert_character(symbol)
+  checkmate::assert_date(start_date)
+  checkmate::assert_date(end_date)
+
+  div <- getDividends(symbol, from = start_date, to = end_date)
+  if(nrow(div) == 0){
+    tibble::tibble(date = end_date,
+                   symbol = symbol,
+                   dividend = 0)
+  } else {
+    tibble::tibble(date = as.Date(index(div)),
+                   symbol = as.character(symbol),
+                   dividend = as.numeric(div))
   }
 }
+
 
 
 #' Get Annualized Security Dividends
@@ -231,18 +224,18 @@ get_annual_dividends <- function(symbols,
   get_dividends(symbols,
                 start_date = Sys.Date() - 365,
                 end_date = Sys.Date()) %>%
-    dplyr::rename(div = dividend) %>%
     dplyr::group_by(symbol) %>%
     dplyr::summarise(
       count = n(),
       annual_dividend = ifelse(count == 5 |
-                                 count == 13, sum(div[-1]), sum(div)),
-      avg_dividend = mean(div),
+                                 count == 13, sum(dividend[-1]), sum(dividend)),
+      avg_dividend = mean(dividend),
       annual_payments = ifelse(count == 5 |
                                  count == 13, count - 1, count),
       last_payment = max(date)
     ) %>%
     dplyr::mutate(last_updated = Sys.time()) %>%
+    dplyr::ungroup() %>%
     dplyr::select_at(
       c(
         "last_updated",

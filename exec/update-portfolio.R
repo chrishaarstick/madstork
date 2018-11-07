@@ -16,7 +16,7 @@ doc <- "Usage: portfolio_update.R [options] [-h]
 "
 
 # Load required packages
-for(p in c('docopt', 'madstork', 'tidyverse', 'quantmod', 'rmarkdown')){
+for(p in c('docopt', 'madstork', 'tidyverse', 'quantmod', 'rmarkdown', 'flexdashboard')){
   if(p %in% rownames(installed.packages())){
     suppressMessages(library(p, character.only = T))
   }else{
@@ -35,8 +35,12 @@ Sys.setenv("RSTUDIO_PANDOC" = "C:/Program Files/RStudio/bin/pandoc")
 # Load Portfolio
 port <- load_portfolio(opt$port)
 
+# Get Current Prices
+symbols <- unique(as.character(port$holdings$symbol))
+prices <- get_current_prices(symbols, dividends = TRUE)
+
 # Update Market Value
-port <- update_market_value(port)
+port <- update_market_value(port, prices)
 
 # Create Report
 warning(Sys.getenv("RSTUDIO_PANDOC"), "\n")

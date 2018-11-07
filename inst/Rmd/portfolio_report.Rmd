@@ -204,14 +204,16 @@ Activity
 
 ```{r}
 activity <- get_activity(port)
-DT::datatable(
-  activity,
-  options = list(
-    pageLength = 20,
-    lengthMenu = c(10, 20)),
-  rownames = FALSE,
-  filter = 'top') %>% 
-  DT::formatCurrency(c("amount"))
+if(nrow(activity)  > 0) {
+  DT::datatable(
+    activity,
+    options = list(
+      pageLength = 20,
+      lengthMenu = c(10, 20)),
+    rownames = FALSE,
+    filter = 'top') %>% 
+    DT::formatCurrency(c("amount"))
+}
 
 ```
 

@@ -18,7 +18,7 @@ to_tibble(x, ...)
 
 \method{to_tibble}{default}(x, ...)
 
-\method{to_tibble}{income}(x)
+\method{to_tibble}{income}(x, ...)
 
 \method{to_tibble}{trade}(x, ...)
 }

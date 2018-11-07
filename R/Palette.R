@@ -15,6 +15,7 @@ madstork_colors <- c(
 #' Function to extract madstork colors as hex codes
 #'
 #' @param ... Character names of madstork_colors
+#' @export
 madstork_cols <- function(...) {
   cols <- c(...)
 

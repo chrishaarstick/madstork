@@ -8,9 +8,6 @@ get_annual_dividends(symbols, error_handling = "pass")
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}
-
-\item{error_handling}{option to handle errors within foreach loop. options
-are 'pass', 'remove', or 'stop'}
 }
 \value{
 data.frame with 1 record per symbol with annual dividend, avg
