@@ -82,24 +82,34 @@ highchart(height = 600) %>%
 library(formattable)
 rbind(
   get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated) - 60^2*25)) %>%
-    summarise_at(c("cash", "investments_value", "net_value"),
+    filter(last_updated >= (max(last_updated) - days(1) - hours(1))) %>%
+    mutate(cash_change = c(0, diff(cash)),
+           net_investment_value = investments_value + cash_change) %>% 
+    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
                  .funs = funs(tail(., 1)/head(., 1) - 1)),
   get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated) - 60^2*24.15*7)) %>%
-    summarise_at(c("cash", "investments_value", "net_value"),
+    filter(last_updated >= (max(last_updated)- weeks(1) - hours(1))) %>%
+    mutate(cash_change = c(0, diff(cash)),
+           net_investment_value = investments_value + cash_change) %>% 
+    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
                  .funs = funs(tail(., 1)/head(., 1) - 1)),
   get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated) - 60^2*24*30)) %>%
-    summarise_at(c("cash", "investments_value", "net_value"),
+    filter(last_updated >= (max(last_updated) - months(1) - hours(1))) %>%
+    mutate(cash_change = c(0, diff(cash)),
+           net_investment_value = investments_value + cash_change) %>% 
+    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
                  .funs = funs(tail(., 1)/head(., 1) - 1)),
   get_market_value(port) %>% 
     filter(year(last_updated) == max(year(last_updated))) %>%
-    summarise_at(c("cash", "investments_value", "net_value"),
+    mutate(cash_change = c(0, diff(cash)),
+           net_investment_value = investments_value + cash_change) %>% 
+    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
                  .funs = funs(tail(., 1)/head(., 1) - 1)),
   get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated) - 60^2*24*365)) %>%
-    summarise_at(c("cash", "investments_value", "net_value"),
+    filter(last_updated >= (max(last_updated) - years(1) - hours(1))) %>%
+    mutate(cash_change = c(0, diff(cash)),
+           net_investment_value = investments_value + cash_change) %>% 
+    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
                  .funs = funs(tail(., 1)/head(., 1) - 1))
 ) %>% 
   dplyr::mutate(period = c("day", "week", "month", "ytd", "year")) %>% 
@@ -176,6 +186,18 @@ get_market_value(port) %>%
 
 ```{r}
 
+df <- get_symbol_portfolio_share(port) %>% 
+  arrange(-portfolio_share) %>% 
+  rename(y = portfolio_share, name = symbol) %>% 
+  mutate(y = round(y*100,1))
+
+
+highchart() %>%
+  hc_title(text = "", style = list(fontSize = "4px")) %>% 
+  hc_add_series_labels_values(df$name, df$y,
+                              type = "pie",  size = '100%', innerSize = "50%",
+                              dataLabels = list(distance = -40, 
+                                                color = '#ffffff'))
 ```
 
 
