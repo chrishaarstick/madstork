@@ -13,7 +13,7 @@ get_annual_dividends(symbols, error_handling = "pass")
 are 'pass', 'remove', or 'stop'}
 }
 \value{
-tibble with 1 record per symbol with annual dividend, avg
+data.frame with 1 record per symbol with annual dividend, avg
   payment, number of payments per year and last payment date
 }
 \description{

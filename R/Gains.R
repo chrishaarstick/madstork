@@ -117,12 +117,10 @@ gains <- function(sale, holding, gain_threshold = 365) {
 
 #' Function to convert gains to tibble
 #'
-#' @param x trade object
-#' @param ... additional arguments. not currently implemented
-#'
+#' @rdname to_tibble
 #' @export
-as_tibble.gains <- function(x, ...) {
-  tibble(
+to_tibble.gains <- function(x, ...) {
+  tibble::tibble(
     symbol = as.character(x$symbol),
     quantity = as.numeric(x$quantity),
     purchase_date = as.Date(x$purchase_date),
@@ -152,7 +150,7 @@ add_tax_liability <- function(gain,
   stopifnot(class(gain) == "gains")
 
   gain %>%
-    as.tibble() %>%
+    to_tibble() %>%
     dplyr::mutate(tax_rate = ifelse(type == "st", st_taxrate, lt_taxrate)) %>%
     dplyr::mutate(tax_liability = tax_rate * gain)
 }

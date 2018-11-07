@@ -57,12 +57,10 @@ validate_activity <- function(x) {
 
 #' Function to convert activity to tibble
 #'
-#' @param x trade object
-#' @param ... additional arguments. not currently implemented
-#'
+#' @rdname to_tibble
 #' @export
-as_tibble.activity <- function(x) {
-  tibble(
+to_tibble.activity <- function(x, ...) {
+  tibble::tibble(
     date_added = x$date_added,
     transaction_date = x$transaction_date,
     type = x$type,
@@ -116,7 +114,7 @@ make_deposit <- function(pobj, date = Sys.Date(), amount, desc = "") {
   checkmate::assert_class(pobj, "portfolio")
 
   action <- deposit(date, amount, desc)
-  action_df <- as_tibble(action)
+  action_df <- to_tibble(action)
 
   nid <- ifelse(nrow(pobj$activity) == 0, 1, max(pobj$activity$id) + 1)
   action_df <- dplyr::mutate(action_df, id = nid)
@@ -170,7 +168,7 @@ withdraw <- function(date, amount, desc = "") {
 make_withdraw <- function(pobj, date = Sys.Date(), amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
   action <- withdraw(date, amount, desc)
-  action_df <- as_tibble(action) %>%
+  action_df <- to_tibble(action) %>%
     dplyr::mutate(id = max(pobj$activity$id, 0)+1)
 
   if (action$amount > pobj$cash) {
@@ -223,7 +221,7 @@ fee <- function(date, amount, desc = ""){
 incur_fee <- function(pobj, date = Sys.Date(), amount, desc=""){
   stopifnot(class(pobj) == "portfolio")
   action <- fee(date, amount, desc)
-  action_df <- as_tibble(action) %>%
+  action_df <- to_tibble(action) %>%
     dplyr::mutate(id = max(pobj$activity$id,0)+1)
 
   if (action$amount > pobj$cash) {

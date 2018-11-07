@@ -20,3 +20,23 @@ capitalize <- function(x, first_only = FALSE) {
     paste(toupper(substring(s, 1,1)), substring(s, 2),  sep="", collapse=" ")
   }
 }
+
+
+#' Function to convert object to tibble
+#'
+#' @param x trade object
+#' @param ... additional arguments. not currently implemented
+#'
+#' @export
+to_tibble <- function(x, ...) {
+  UseMethod("to_tibble")
+}
+
+
+#' Default to tibble behavior
+#'
+#' @rdname to_tibble
+#' @export
+to_tibble.default <- function(x, ...) {
+  tibble::as_tibble(x)
+}

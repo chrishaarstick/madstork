@@ -54,7 +54,7 @@ get_ochlav <- function(symbols,
       yahoo.warning = warning,
       auto.assign = FALSE
     ) %>%
-      as.tibble()
+      to_tibble()
 
     symbol$date <- rownames(symbol)
 
@@ -215,7 +215,7 @@ get_dividends <- function(symbols,
 #'
 #' @inheritParams get_dividends
 #'
-#' @return tibble with 1 record per symbol with annual dividend, avg
+#' @return data.frame with 1 record per symbol with annual dividend, avg
 #'   payment, number of payments per year and last payment date
 #' @export
 #'

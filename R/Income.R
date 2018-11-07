@@ -76,12 +76,10 @@ validate_income <- function(x) {
 
 #' Function to convert income to tibble
 #'
-#' @param x trade object
-#' @param ... additional arguments. not currently implemented
-#'
+#' @rdname to_tibble
 #' @export
-as_tibble.income <- function(x) {
-  tibble(
+to_tibble.income <- function(x, ...) {
+  tibble::tibble(
     date_added = x$date_added,
     transaction_date = x$transaction_date,
     type = x$type,
@@ -136,7 +134,7 @@ make_income <- function(pobj, income){
   checkmate::assert_class(pobj, "portfolio")
   checkmate::assert_class(income, "income")
 
-  income_df <- as_tibble(income)
+  income_df <- to_tibble(income)
   nid <- ifelse(nrow(pobj$income) == 0, 1, max(pobj$income$id) + 1)
   income_df <- dplyr::mutate(income_df, id = nid)
 

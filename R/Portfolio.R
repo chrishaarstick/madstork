@@ -11,7 +11,6 @@
 #' @param name name of portfolio. requires string input
 #' @param cash cash balance. requires numeric input
 #'
-#' @importFrom tibble tibble
 #' @return portfolio object
 new_portfolio <- function(name,
                           cash) {
@@ -23,13 +22,13 @@ new_portfolio <- function(name,
       name = name,
       cash = cash,
       tax_liability = 0,
-      holdings = tibble(),
-      activity = tibble(),
-      trades = tibble(),
-      income = tibble(),
-      gains = tibble(),
-      market_value = tibble(),
-      holdings_market_value = tibble()
+      holdings = tibble::tibble(),
+      activity = tibble::tibble(),
+      trades = tibble::tibble(),
+      income = tibble::tibble(),
+      gains = tibble::tibble(),
+      market_value = tibble::tibble(),
+      holdings_market_value = tibble::tibble()
     ),
     class = "portfolio"
   )
@@ -453,7 +452,7 @@ update_market_value <- function(pobj, prices = NULL) {
   holdings <- get_holdings(pobj)
   holdings_market_value <- update_holdings_market_value(pobj, prices)
 
-  current_market_value <- tibble(
+  current_market_value <- tibble::tibble(
     last_updated = Sys.time(),
     cash = as.numeric(get_cash(pobj)),
     investments_value = sum(holdings_market_value$market_value),
@@ -589,3 +588,5 @@ load_portfolio <- function(path){
   stopifnot(class(port_env$pobj) == "portfolio")
   return(port_env$pobj)
 }
+
+
