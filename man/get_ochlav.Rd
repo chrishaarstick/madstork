@@ -22,7 +22,7 @@ are 'pass', 'remove', or 'stop'}
 \item{warning}{logical argument to print getSymbol warnings to console}
 }
 \value{
-data.frame with symbol historical prices. schema is date, symbol,
+tibble with symbol historical prices. schema is date, symbol,
   open, close, high, low, adj_close, volume
 }
 \description{

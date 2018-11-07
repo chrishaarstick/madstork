@@ -74,9 +74,14 @@ validate_income <- function(x) {
 }
 
 
-# Internal function to convert income to data.frame
-as.data.frame.income <- function(x) {
-  data.frame(
+#' Function to convert income to tibble
+#'
+#' @param x trade object
+#' @param ... additional arguments. not currently implemented
+#'
+#' @export
+as_tibble.income <- function(x) {
+  tibble(
     date_added = x$date_added,
     transaction_date = x$transaction_date,
     type = x$type,
@@ -128,11 +133,13 @@ dividend <- function(date,
 
 # Internal Function to execute an income object
 make_income <- function(pobj, income){
-  stopifnot(class(pobj) == "portfolio")
-  stopifnot(class(income) == "income")
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(income, "income")
 
-  income_df <- as.data.frame(income) %>%
-    dplyr::mutate(id = max(pobj$income$id,0)+1)
+  income_df <- as_tibble(income)
+  nid <- ifelse(nrow(pobj$income) == 0, 1, max(pobj$income$id) + 1)
+  income_df <- dplyr::mutate(income_df, id = nid)
+
   activity <- income_df %>%
     dplyr::mutate(desc = paste("income_id:", income_df$id)) %>%
     dplyr::mutate(id = max(pobj$activity$id, 0) + 1) %>%

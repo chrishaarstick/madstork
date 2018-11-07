@@ -10,7 +10,7 @@ get_holdings_market_value(pobj)
 \item{pobj}{portfolio object}
 }
 \value{
-data.frame with portfolio holdings market value
+tibble with portfolio holdings market value
 }
 \description{
 Get Portfolio's Holdings Market Value

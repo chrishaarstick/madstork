@@ -20,7 +20,7 @@ Y-m-d format required}
 are 'pass', 'remove', or 'stop'}
 }
 \value{
-data.frame with a record for each dividend distrubtion per security
+tibble with a record for each dividend distrubtion per security
 }
 \description{
 Wrapper function around quantmod::getDividend function

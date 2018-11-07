@@ -10,7 +10,7 @@ get_trades(pobj)
 \item{pobj}{portfolio object}
 }
 \value{
-data.frame of trade history
+tibble of trade history
 }
 \description{
 getter function to return Portfolio's trades

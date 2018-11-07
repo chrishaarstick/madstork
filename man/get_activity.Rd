@@ -10,7 +10,7 @@ get_activity(pobj)
 \item{pobj}{portfolio object}
 }
 \value{
-data.frame of activity history
+tibble of activity history
 }
 \description{
 getter function to return Portfolio's activity

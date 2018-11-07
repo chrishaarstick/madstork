@@ -22,7 +22,7 @@ are 'pass', 'remove', or 'stop'}
 \item{warning}{logical argument to print getSymbol warnings to console}
 }
 \value{
-single data.frame with symbol price history row bounded in long format
+single tibble with symbol price history row bounded in long format
 }
 \description{
 Wrapper function around get_ochlav function that returns historical securtity prices

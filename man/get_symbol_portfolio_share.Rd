@@ -10,7 +10,7 @@ get_symbol_portfolio_share(pobj)
 \item{pobj}{portfolio object}
 }
 \value{
-data.frame with portfolio share by symbol
+tibble with portfolio share by symbol
 }
 \description{
 Aggregates holdings portfolio share to symbol

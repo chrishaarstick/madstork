@@ -10,7 +10,7 @@ get_holdings(pobj)
 \item{pobj}{portfolio object}
 }
 \value{
-holdings data.frame
+holdings tibble
 }
 \description{
 getter function to return Portfolio's current holdings

@@ -76,14 +76,14 @@ validate_trade <- function(x) {
 }
 
 
-#' Function to convert trade to data.frame
+#' Function to convert trade to tibble
 #'
 #' @param x trade object
 #' @param ... additional arguments. not currently implemented
 #'
 #' @export
-as.data.frame.trade <- function(x, ...) {
-  data.frame(
+as_tibble.trade <- function(x, ...) {
+  tibble(
     date_added = as.Date(x$date_added),
     transaction_date = as.Date(x$transaction_date),
     type = as.character(x$type),
@@ -150,10 +150,13 @@ make_buy <- function(pobj,
                      price,
                      desc = "",
                      trans_cost = .05) {
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
+
   trade <- buy(date, symbol, quantity, price, desc)
-  trade_df <- as.data.frame(trade) %>%
-    dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
+
+  nid <- ifelse(nrow(pobj$trades) == 0, 1, max(pobj$trades$id) + 1)
+  trade_df <- as_tibble(trade) %>%
+    dplyr::mutate(id = nid)
 
   if (pobj$cash < trade$amount) {
     stop("Trade amount more than cash available. Insufficient cash to make buy trade",
@@ -265,15 +268,18 @@ make_sell <- function(pobj,
          .call = FALSE)
   }
 
-  trade_df <- as.data.frame(trade) %>%
-    dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
+  nid <- ifelse(nrow(pobj$trades) == 0, 1, max(pobj$trades$id) + 1)
+  trade_df <- as_tibble(trade) %>%
+    dplyr::mutate(id = nid)
 
   new_holding <- holding
   new_holding$quantity <- new_holding$quantity - trade$quantity
   if(new_holding$quantity == 0) new_holding <- NULL
+
+  nid <- ifelse(nrow(pobj$gains) == 0, 1, max(pobj$gains$id))
   gain <- gains(trade, holding) %>%
     add_tax_liability() %>%
-    dplyr::mutate(id = max(pobj$gains$id, 0) + 1)
+    dplyr::mutate(id = nid)
 
   pobj <- pobj %>%
     make_deposit(date,
@@ -359,7 +365,7 @@ transfer_out <- function(pobj,
   }
   symbol <- as.character(holding$symbol)
   trade <- transfer(date, symbol, holding$quantity, holding$price, type = "out", desc)
-  trade_df <- as.data.frame(trade) %>%
+  trade_df <- as_tibble(trade) %>%
     dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
 
   pobj$trades <- rbind(pobj$trades, trade_df)
@@ -394,7 +400,7 @@ transfer_in <- function(pobj,
                         desc = "") {
   stopifnot(class(pobj) == "portfolio")
   trade <-transfer(date, symbol, quantity, price, type = "in", desc)
-  trade_df <- as.data.frame(trade) %>%
+  trade_df <- as_tibble(trade) %>%
     dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
 
   pobj$trades <- rbind(pobj$trades, trade_df)

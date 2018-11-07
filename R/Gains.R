@@ -115,9 +115,14 @@ gains <- function(sale, holding, gain_threshold = 365) {
 }
 
 
-# Internal function to convert gains to data.frame
-as.data.frame.gains <- function(x) {
-  data.frame(
+#' Function to convert gains to tibble
+#'
+#' @param x trade object
+#' @param ... additional arguments. not currently implemented
+#'
+#' @export
+as_tibble.gains <- function(x, ...) {
+  tibble(
     symbol = as.character(x$symbol),
     quantity = as.numeric(x$quantity),
     purchase_date = as.Date(x$purchase_date),
@@ -147,7 +152,7 @@ add_tax_liability <- function(gain,
   stopifnot(class(gain) == "gains")
 
   gain %>%
-    as.data.frame() %>%
+    as.tibble() %>%
     dplyr::mutate(tax_rate = ifelse(type == "st", st_taxrate, lt_taxrate)) %>%
     dplyr::mutate(tax_liability = tax_rate * gain)
 }

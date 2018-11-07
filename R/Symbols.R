@@ -16,7 +16,7 @@
 #'   are 'pass', 'remove', or 'stop'
 #' @param warning logical argument to print getSymbol warnings to console
 #'
-#' @return data.frame with symbol historical prices. schema is date, symbol,
+#' @return tibble with symbol historical prices. schema is date, symbol,
 #'   open, close, high, low, adj_close, volume
 #' @export
 #'
@@ -54,7 +54,7 @@ get_ochlav <- function(symbols,
       yahoo.warning = warning,
       auto.assign = FALSE
     ) %>%
-      as.data.frame()
+      as.tibble()
 
     symbol$date <- rownames(symbol)
 
@@ -77,7 +77,7 @@ get_ochlav <- function(symbols,
 #'
 #' @inheritParams get_ochlav
 #'
-#' @return single data.frame with symbol price history row bounded in long format
+#' @return single tibble with symbol price history row bounded in long format
 #' @export
 #'
 #' @examples
@@ -109,7 +109,7 @@ get_prices <- function(symbols,
 #' @param dividends logical option to add current annual dividend amount to
 #'   output
 #'
-#' @return data.frame with 1 record per symbol with current adjusted close price
+#' @return tibble with 1 record per symbol with current adjusted close price
 #' @export
 #'
 #' @examples
@@ -162,7 +162,7 @@ get_current_prices <- function(symbols,
 #' @param error_handling option to handle errors within foreach loop. options
 #'   are 'pass', 'remove', or 'stop'
 #'
-#' @return data.frame with a record for each dividend distrubtion per security
+#' @return tibble with a record for each dividend distrubtion per security
 #' @export
 #' @importFrom quantmod getDividends
 #'
@@ -187,11 +187,11 @@ get_dividends <- function(symbols,
                         to = end_date)
 
     if(nrow(div) == 0){
-      data.frame(date = end_date,
+      tibble(date = end_date,
                  symbol = sym,
                dividend = 0)
     }else{
-     data.frame(div) %>%
+     tibble(div) %>%
         dplyr::rename_all(dplyr::funs(tolower(gsub(
           paste0(sym, "."), "", .
         )))) %>%
@@ -215,7 +215,7 @@ get_dividends <- function(symbols,
 #'
 #' @inheritParams get_dividends
 #'
-#' @return data.frame with 1 record per symbol with annual dividend, avg
+#' @return tibble with 1 record per symbol with annual dividend, avg
 #'   payment, number of payments per year and last payment date
 #' @export
 #'

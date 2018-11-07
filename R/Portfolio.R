@@ -11,6 +11,7 @@
 #' @param name name of portfolio. requires string input
 #' @param cash cash balance. requires numeric input
 #'
+#' @importFrom tibble tibble
 #' @return portfolio object
 new_portfolio <- function(name,
                           cash) {
@@ -22,13 +23,13 @@ new_portfolio <- function(name,
       name = name,
       cash = cash,
       tax_liability = 0,
-      holdings = data.frame(),
-      activity = data.frame(),
-      trades = data.frame(),
-      income = data.frame(),
-      gains = data.frame(),
-      market_value = data.frame(),
-      holdings_market_value = data.frame()
+      holdings = tibble(),
+      activity = tibble(),
+      trades = tibble(),
+      income = tibble(),
+      gains = tibble(),
+      market_value = tibble(),
+      holdings_market_value = tibble()
     ),
     class = "portfolio"
   )
@@ -101,7 +102,7 @@ get_cash <- function(pobj) {
 #'
 #' @param pobj portfolio object
 #'
-#' @return data.frame of activity history
+#' @return tibble of activity history
 #' @export
 #'
 #' @examples
@@ -136,7 +137,7 @@ get_activity <- function(pobj) {
 #'
 #' @param pobj portfolio object
 #'
-#' @return data.frame of trade history
+#' @return tibble of trade history
 #' @export
 #'
 #' @examples
@@ -175,7 +176,7 @@ get_trades <- function(pobj) {
 #'
 #' @param pobj portfolio object
 #'
-#' @return holdings data.frame
+#' @return holdings tibble
 #' @export
 #'
 #' @examples
@@ -369,10 +370,10 @@ get_income <- function(pobj) {
 #' Calculates market value, income and yield
 #'
 #' @param pobj portfolio object
-#' @param prices data.frame with symbol prices. requires symbol, and price
+#' @param prices tibble with symbol prices. requires symbol, and price
 #'   columns
 #'
-#' @return data.frame with portfolio's holdings market value
+#' @return tibble with portfolio's holdings market value
 #' @export
 #' @importFrom stats weighted.mean
 #'
@@ -392,7 +393,7 @@ update_holdings_market_value <- function(pobj, prices = NULL) {
   symbols <- unique(holdings$symbol)
 
   if(is.null(prices)) {
-    prices <- get_current_prices(symbols = symbols, dividends = TRUE)
+     prices <- get_current_prices(symbols = symbols, dividends = TRUE)
   }
   checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
   checkmate::assert_subset(symbols, prices$symbol)
@@ -452,7 +453,7 @@ update_market_value <- function(pobj, prices = NULL) {
   holdings <- get_holdings(pobj)
   holdings_market_value <- update_holdings_market_value(pobj, prices)
 
-  current_market_value <- data.frame(
+  current_market_value <- tibble(
     last_updated = Sys.time(),
     cash = as.numeric(get_cash(pobj)),
     investments_value = sum(holdings_market_value$market_value),
@@ -474,7 +475,7 @@ update_market_value <- function(pobj, prices = NULL) {
 #'
 #' @param pobj portfolio object
 #'
-#' @return data.frame with portfolio's market value
+#' @return tibble with portfolio's market value
 #' @export
 get_market_value <- function(pobj){
   checkmate::assert_class(pobj, "portfolio")
@@ -487,7 +488,7 @@ get_market_value <- function(pobj){
 #'
 #' @param pobj portfolio object
 #'
-#' @return data.frame with portfolio holdings market value
+#' @return tibble with portfolio holdings market value
 #' @export
 get_holdings_market_value <- function(pobj){
   checkmate::assert_class(pobj, "portfolio")
@@ -502,7 +503,7 @@ get_holdings_market_value <- function(pobj){
 #'
 #' @param pobj portfolio object
 #'
-#' @return data.frame with portfolio share by symbol
+#' @return tibble with portfolio share by symbol
 #' @export
 get_symbol_portfolio_share <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")

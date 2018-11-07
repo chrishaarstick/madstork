@@ -19,7 +19,7 @@ are 'pass', 'remove', or 'stop'}
 \item{warning}{logical argument to print getSymbol warnings to console}
 }
 \value{
-data.frame with 1 record per symbol with current adjusted close price
+tibble with 1 record per symbol with current adjusted close price
 }
 \description{
 Wrapper function around get_prices function that returns current prices. Adds
