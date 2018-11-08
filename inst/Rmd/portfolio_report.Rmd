@@ -212,7 +212,7 @@ DT::datatable(
   options = list(
     pageLength = 20,
     lengthMenu = c(10, 20),
-    order = list(list(4, 'desc')))) %>%
+    order = list(list(5, 'desc')))) %>%
   DT::formatCurrency(c('market_value', 'cost_basis', "unrealized_gain",
                        "dividend", "annual_income")) %>%
   DT::formatRound(c("price"), 2) %>% 
