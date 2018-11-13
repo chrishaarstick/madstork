@@ -15,8 +15,8 @@ library(flexdashboard)
 library(tidyverse)
 library(madstork)
 library(highcharter)
+library(formattable)
 library(lubridate)
-
 
 port <- params$port
 name <- capitalize(gsub("-|_", " ", port$name))
@@ -79,60 +79,35 @@ highchart(height = 600) %>%
 ### Portfolio Returns
 
 ```{r}
-library(formattable)
-rbind(
-  get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated) - days(1) - hours(1))) %>%
-    mutate(cash_change = c(0, diff(cash)),
-           net_investment_value = investments_value + cash_change) %>% 
-    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
-                 .funs = funs(tail(., 1)/head(., 1) - 1)),
-  get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated)- weeks(1) - hours(1))) %>%
-    mutate(cash_change = c(0, diff(cash)),
-           net_investment_value = investments_value + cash_change) %>% 
-    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
-                 .funs = funs(tail(., 1)/head(., 1) - 1)),
-  get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated) - months(1) - hours(1))) %>%
-    mutate(cash_change = c(0, diff(cash)),
-           net_investment_value = investments_value + cash_change) %>% 
-    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
-                 .funs = funs(tail(., 1)/head(., 1) - 1)),
-  get_market_value(port) %>% 
-    filter(year(last_updated) == max(year(last_updated))) %>%
-    mutate(cash_change = c(0, diff(cash)),
-           net_investment_value = investments_value + cash_change) %>% 
-    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
-                 .funs = funs(tail(., 1)/head(., 1) - 1)),
-  get_market_value(port) %>% 
-    filter(last_updated >= (max(last_updated) - years(1) - hours(1))) %>%
-    mutate(cash_change = c(0, diff(cash)),
-           net_investment_value = investments_value + cash_change) %>% 
-    summarise_at(c("cash", "investments_value", "net_investment_value", "net_value"),
-                 .funs = funs(tail(., 1)/head(., 1) - 1))
+
+bind_rows(
+  get_portfolio_returns(pobj, today() - days(1) - hours(1)),
+  get_portfolio_returns(pobj, today() - weeks(1) - hours(1)),
+  get_portfolio_returns(pobj, today() - months(1) - hours(1)),
+  get_portfolio_returns(pobj, floor_date(today(), unit = "year")),
+  get_portfolio_returns(pobj, today() -years(1) - hours(1))
 ) %>% 
-  dplyr::mutate(period = c("day", "week", "month", "ytd", "year")) %>% 
-  tidyr::gather(metric, value, -period) %>%
-  tidyr::spread(period, value = value) %>% 
-  dplyr::select(metric, day, week, month, ytd, year) %>% 
+  mutate(period = c("day", "week", "month", "ytd", "year")) %>% 
+  gather(metric, value, -period) %>%
+  spread(period, value = value) %>% 
+  select(metric, day, week, month, ytd, year) %>% 
   formattable(.,
               list(
                 day = formatter("span",
-                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                                x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
                 week = formatter("span",
-                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                 style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                                 x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
                 month = formatter("span",
-                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                  style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                                  x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
                 ytd = formatter("span",
-                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                                x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
                 year = formatter("span",
-                       style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                        x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x)))
+                                 style = x ~ style(color = ifelse(x > 0, "green", "red")),
+                                 x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x)))
               ))
 
 ```

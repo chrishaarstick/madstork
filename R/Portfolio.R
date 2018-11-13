@@ -590,3 +590,46 @@ load_portfolio <- function(path){
 }
 
 
+#' Get Portfolio Return
+#'
+#' Function extracts portfolio market values and calculates returns for given
+#' time horizon. Function calculates the net investment value which is return on
+#' invests only (net cash change)
+#'
+#' @param pobj portfolio object
+#' @param start_date starting date for return horizon. Date class required
+#' @param end_date end date for return horizon. Date class required
+#'
+#' @return data.frame with cash, investments, net investment and net value
+#'   return statistic
+#' @export
+get_portfolio_returns <- function(pobj, start_date, end_date = Sys.Date()) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_subset(class(start_date), c("Date", "POSIXlt", "POSIXt"))
+  checkmate::assert_subset(class(end_date), c("Date", "POSIXlt", "POSIXt"))
+
+  cash_net <- pobj$activity %>%
+    dplyr::filter( !grepl("trade|income", desc))  %>%
+    dplyr::filter(transaction_date >= start_date) %>%
+    dplyr::summarise(net = sum(case_when(type == "fee" ~ -amount,
+                                         type == "withdraw" ~ -amount,
+                                         type == "deposit" ~ amount,
+                                         TRUE ~ amount)))
+
+  str_vals <- get_market_value(pobj) %>%
+    dplyr::filter(last_updated >= start_date) %>%
+    dplyr::filter(last_updated == min(last_updated)) %>%
+    dplyr::mutate(net_investment_value = investments_value) %>%
+    dplyr::select(cash, investments_value, net_investment_value, net_value)
+
+  diff_vals <- get_market_value(pobj) %>%
+    dplyr::filter(last_updated >= start_date) %>%
+    dplyr::filter(last_updated == min(last_updated) |
+                    last_updated == max(last_updated)) %>%
+    dplyr::summarise_at(c("cash", "investments_value", "net_value"),
+                        funs(last(.) - first(.))) %>%
+    dplyr::mutate(net_investment_value = investments_value + cash - cash_net$net) %>%
+    dplyr::select(cash, investments_value, net_investment_value, net_value)
+
+  diff_vals / str_vals
+}
