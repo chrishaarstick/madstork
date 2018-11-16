@@ -1,5 +1,5 @@
 ---
-title: "MadStork"
+title: "MadStork Portfolio Report"
 output: 
   flexdashboard::flex_dashboard:
     theme: spacelab
@@ -94,20 +94,40 @@ bind_rows(
   formattable(.,
               list(
                 day = formatter("span",
-                                style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                                x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                style = x ~ style(color = case_when(x > 0 ~ "green",
+                                                                    x == 0 ~ "grey",
+                                                                    TRUE ~ "red")),
+                                x ~ icontext(case_when(x > 0 ~ "arrow-up",
+                                                       x == 0 ~ "arrow", 
+                                                       TRUE ~ "arrow-down"), percent(x))),
                 week = formatter("span",
-                                 style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                                 x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                 style = x ~ style(color = case_when(x > 0 ~ "green",
+                                                                     x == 0 ~ "grey",
+                                                                     TRUE ~ "red")),
+                                 x ~ icontext(case_when(x > 0 ~ "arrow-up",
+                                                        x == 0 ~ "arrow", 
+                                                        TRUE ~ "arrow-down"), percent(x))),
                 month = formatter("span",
-                                  style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                                  x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                  style = x ~ style(color = case_when(x > 0 ~ "green",
+                                                                      x == 0 ~ "grey",
+                                                                      TRUE ~ "red")),
+                                  x ~ icontext(case_when(x > 0 ~ "arrow-up",
+                                                         x == 0 ~ "arrow", 
+                                                         TRUE ~ "arrow-down"), percent(x))),
                 ytd = formatter("span",
-                                style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                                x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x))),
+                                style = x ~ style(color = case_when(x > 0 ~ "green",
+                                                                    x == 0 ~ "grey",
+                                                                    TRUE ~ "red")),
+                                x ~ icontext(case_when(x > 0 ~ "arrow-up",
+                                                       x == 0 ~ "arrow", 
+                                                       TRUE ~ "arrow-down"), percent(x))),
                 year = formatter("span",
-                                 style = x ~ style(color = ifelse(x > 0, "green", "red")),
-                                 x ~ icontext(ifelse(x > 0, "arrow-up", "arrow-down"), percent(x)))
+                                 style = x ~ style(color = case_when(x > 0 ~ "green",
+                                                                     x == 0 ~ "grey",
+                                                                     TRUE ~ "red")),
+                                 x ~ icontext(case_when(x > 0 ~ "arrow-up",
+                                                        x == 0 ~ "arrow", 
+                                                        TRUE ~ "arrow-down"), percent(x)))
               ))
 
 ```
@@ -123,7 +143,7 @@ Column {data-width=300}
 knitr::kable(
   c("last updated" = max(port$market_value$last_updated),
     "created on" = min(port$market_value$last_updated)),
-    col.names = port$name)
+  col.names = port$name)
 ```
 
 
@@ -136,8 +156,8 @@ get_market_value(port) %>%
   gather(metric, amount) %>% 
   formattable(.,
               list(amount = formatter("span",
-                       style = x ~ style(color = madstork_cols("dark blue"), font.weight = "bold"),
-                        x ~ currency(x, digits = 0))))
+                                      style = x ~ style(color = madstork_cols("dark blue"), font.weight = "bold"),
+                                      x ~ currency(x, digits = 0))))
 ```
 
 
@@ -152,8 +172,8 @@ get_market_value(port) %>%
   gather(metric, amount) %>% 
   formattable(.,
               list(amount = formatter("span",
-                       style = x ~ style(color = madstork_cols("orange"), font.weight = "bold"),
-                        x ~ currency(x, digits = 0))))
+                                      style = x ~ style(color = madstork_cols("orange"), font.weight = "bold"),
+                                      x ~ currency(x, digits = 0))))
 ```
 
 

@@ -22,5 +22,6 @@ Suggests:
   docopt,
   highcharter,
   DT,
-  formattable
+  formattable,
+  tidyquant
 RoxygenNote: 6.1.0
