@@ -633,3 +633,48 @@ get_portfolio_returns <- function(pobj, start_date, end_date = Sys.Date()) {
 
   diff_vals / str_vals
 }
+
+
+
+#' Update Dividend Income
+#'
+#' Auto dividend income function. Function searches for last dividend payment
+#' for each symbol holding, gets all subsequent dividends and updates the
+#' portfolio
+#'
+#' Function to be used in daily portfolio-update script to remove need for
+#' manual dividend updating
+#'
+#' @param pobj portfolio object
+#'
+#' @return updated portfolio object
+#' @export
+update_dividend_income <- function(pobj) {
+  checkmate::assert_class(pobj, "portfolio")
+
+  new_divs <- port$income %>%
+    to_tibble() %>%
+    dplyr::filter(type == "dividend") %>%
+    dplyr::group_by(symbol) %>%
+    dplyr::summarise(date = max(transaction_date)) %>%
+    dplyr::ungroup() %>%
+    split(.$symbol) %>%
+    purrr::map_dfr(~get_dividends(as.character(.$symbol), .$date)) %>%
+    dplyr::filter(dividend > 0)
+
+  for(sym in new_divs$symbol) {
+
+    div <- dplyr::filter(new_divs, symbol == sym)
+    holding <- port$holdings %>%
+      dplyr::filter(symbol == div$symbol, transaction_date < div$date) %>%
+      dplyr::summarise_at('quantity', sum)
+
+    port <- recieve_dividend(port,
+                             date   = div$date,
+                             symbol = div$symbol,
+                             amount = div$dividend * holding$quantity)
+  }
+
+  port
+}
+

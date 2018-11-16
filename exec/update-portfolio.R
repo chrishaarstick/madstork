@@ -42,6 +42,9 @@ prices <- get_current_prices(symbols, dividends = TRUE)
 # Update Market Value
 port <- update_market_value(port, prices)
 
+# Update Dividends
+port <- update_dividend_income(port)
+
 # Create Report
 warning(Sys.getenv("RSTUDIO_PANDOC"), "\n")
 
