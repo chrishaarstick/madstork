@@ -41,3 +41,35 @@ report.portfolio <- function(portfolio,
     output_dir = output_dir
   )
 }
+
+
+
+#' MadStork Risk Report Function
+#'
+#' Creates a Risk Report on Portfolio provided.
+#'
+#' Uses risk_report.Rmd template in MadStork package
+#'
+#' @inheritParams report
+#'
+#' @export
+risk_report <- function(portfolio,
+                        output_file = "risk-report.html",
+                        output_dir = getwd(),
+                        pandoc_dir = "C:/Program Files/RStudio/bin/pandoc",
+                        ...) {
+
+  checkmate::assert_directory(output_dir)
+  checkmate::assert_character(output_file, pattern = ".html")
+  template <- system.file("Rmd", "risk_report.Rmd", package = "madstork")
+  checkmate::assert_file_exists(template)
+
+  Sys.setenv(RSTUDIO_PANDO = pandoc_dir)
+  rmarkdown::render(
+    input = template,
+    intermediates_dir = output_dir,
+    params = list(port = portfolio),
+    output_file = output_file,
+    output_dir = output_dir
+  )
+}

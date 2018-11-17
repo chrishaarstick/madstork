@@ -1,0 +1,227 @@
+---
+title: "MadStork Risk Report"
+output: 
+  flexdashboard::flex_dashboard:
+    theme: spacelab
+    orientation: columns
+    vertical_layout: fill
+params:
+   port: NA
+   nyears: 10
+---    
+
+
+```{r setup, include=FALSE, warning=FALSE, message=FALSE}
+library(flexdashboard)
+library(tidyverse)
+library(madstork)
+library(madstork.opt)
+library(highcharter)
+library(formattable)
+library(lubridate)
+library(tidyquant)
+
+port <- params$port
+nyears <- params$nyears
+name <- capitalize(gsub("-|_", " ", port$name))
+```
+
+
+
+Summary
+=====================================  
+
+
+Column {data-width=700}
+-----------------------------------------------------------------------
+
+### Historical Performance
+
+```{r, warning=FALSE, message=FALSE}
+
+# Get Port Shares
+port_shares <- get_symbol_portfolio_share(port)
+
+# Get Estimates
+est <- estimates(symbols    = as.character(port_shares$symbol),
+                 start_date = floor_date(today() - years(nyears), unit = "month"),
+                 end_date   = today(),
+                 grain      = "month",
+                 periods    = 1) 
+
+# Calculate Port Returns
+port_ret <- inner_join(port_shares, est$returns, by = "symbol") %>% 
+  group_by(date) %>% 
+  summarise(return = sum(return * portfolio_share)) %>% 
+  mutate(cum_return = cumprod(1 + return) - 1,
+         cum_return = 100 * cum_return)
+
+# Get Index Returns
+index_est <- estimates(symbols    = "SPY",
+                       start_date = floor_date(today() - years(10), unit = "month"),
+                       end_date   = today(),
+                       grain      = "month",
+                       periods    = 1)
+index_ret <- index_est$returns %>% 
+  mutate(cum_return = cumprod(1 + return) - 1,
+         cum_return = 100 * cum_return)
+
+
+highchart(height = 500) %>% 
+  hc_xAxis(type = "datetime") %>%
+  hc_chart(type = "area", zoomType = "xy") %>%
+  hc_tooltip(shared = TRUE) %>% 
+  hc_tooltip( pointFormat = '{series.name}: {point.y:.1f}%</span><br/>') %>%
+  hc_add_series_times_values(dates = port_ret$date,
+                             values = port_ret$cum_return,
+                             color = as.character(madstork_cols("orange")),
+                             name = name,
+                             id = "portfolio",
+                             type = "line") %>% 
+  hc_add_series_times_values(dates = index_ret$date,
+                             values = index_ret$cum_return,
+                             color =  as.character(madstork_cols("dark grey")),
+                             name = "SP500",
+                             id = "index",
+                             type = "line") %>% 
+   hc_plotOptions(area = list(
+    dataLabels = list(enabled = FALSE),
+    enableMouseTracking = TRUE)
+  ) %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "MadStork Historical Performance Chart") %>% 
+  hc_subtitle(text = paste(name, "vs SP500")) %>% 
+  hc_yAxis(
+    title = list(text = "Cumulative Return"),
+    labels = list(format = "{value}%")) 
+
+```
+
+
+### Monthly Return Distribution
+
+```{r}
+
+
+highchart(height = 500) %>% 
+  hc_chart(type = "area") %>%
+  hc_tooltip(shared = TRUE) %>% 
+  hc_tooltip( pointFormat = '{series.name}: {point.y:.3f}%</span><br/>') %>%
+  hc_add_series(density(port_ret$return*100),
+                             color = as.character(madstork_cols("orange")),
+                             name = name,
+                             id = "portfolio",
+                             type = "area") %>% 
+  hc_add_series(density(index_ret$return*100),
+                             color =  as.character(madstork_cols("dark grey")),
+                             name = "SP500",
+                             id = "index",
+                             type = "area") %>% 
+   hc_plotOptions(area = list(
+    dataLabels = list(enabled = FALSE),
+    enableMouseTracking = TRUE)
+  ) %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "Monthly Return Distribution") %>% 
+  hc_subtitle(text = paste(name, "vs SP500")) %>% 
+  hc_xAxis(
+    title = list(text = "Monthly Returns"),
+    labels = list(format = "{value}%")) 
+
+```
+
+
+Column {data-width=300}
+-----------------------------------------------------------------------
+
+### Annualized Returns
+
+```{r}
+bind_rows(mutate(port_ret, symbol = "Portfolio"), 
+          mutate(index_ret, symbol = "SP500")) %>%
+  group_by(symbol) %>%
+  tq_performance(Ra = return,
+                 performance_fun = table.AnnualizedReturns) %>%
+  ungroup() %>% 
+  setNames(c("symbol", "Annual Return", "Annual Sharpe", "Annual StdDev")) %>% 
+  mutate_at(c(2,4), funs(percent(.))) %>%
+  mutate_at(3, funs(formattable::comma(.))) %>% 
+  mutate_all(as.character) %>% 
+  gather(key="metric", "value", -symbol) %>%
+  mutate(metric = factor(metric, levels = c("Annual Return", "Annual StdDev", "Annual Sharpe"))) %>% 
+  spread(key="symbol", "value") %>% 
+  formattable(.,
+              list(
+                Portfolio = formatter("span",
+                                      style = x ~ style(color = madstork_cols("orange"),
+                                                        font.weight = "bold")),
+                SP500 = formatter("span",
+                                  style = x ~ style(color =madstork_cols("dark grey")))
+              ))
+  
+```
+
+### Monthly Return Statistics
+
+
+```{r}
+
+bind_rows(mutate(port_ret, symbol = "Portfolio"), 
+          mutate(index_ret, symbol = "SP500")) %>%
+  group_by(symbol) %>%
+  tq_performance(Ra = return,
+                 performance_fun = table.Stats) %>%
+  ungroup() %>%
+  select(symbol, Minimum, Quartile1, Median, Mean = ArithmeticMean, Quartile3, Maximum) %>%
+  gather(key="metric", "value", -symbol) %>%
+  mutate(metric = factor(metric, levels = c("Minimum", "Quartile1", "Median",
+                                            "Mean", "Quartile3", "Maximum"))) %>% 
+  spread(key="symbol", "value") %>% 
+  formattable(.,
+              list(
+                Portfolio = formatter("span",
+                                      style = x ~ style(color = madstork_cols("orange"),
+                                                        font.weight = "bold"),
+                                      x ~  percent(x)),
+                SP500 = formatter("span",
+                                  style = x ~ style(color = madstork_cols("dark grey")),
+                                  x ~  percent(x))
+              ))
+
+```
+
+
+### Risk Measures
+
+
+```{r}
+
+bind_rows(mutate(port_ret, symbol = "Portfolio"), 
+          mutate(index_ret, symbol = "SP500")) %>%
+  group_by(symbol) %>%
+  tq_performance(Ra = return,
+                 performance_fun = table.DownsideRisk) %>%
+  ungroup() %>%
+  select(symbol, 
+         `Maximum Drawdown` = MaximumDrawdown,
+         `Downside Deviation` = `DownsideDeviation(0%)`,
+         `Value at Risk (95%)` = `HistoricalVaR(95%)`) %>%
+  gather(key="metric", "value", -symbol) %>%
+  mutate(metric = factor(metric,
+                         levels = c("Maximum Drawdown",
+                                    "Downside Deviation",
+                                    "Value at Risk (95%)"))) %>% 
+  spread(key="symbol", "value") %>% 
+   formattable(.,
+              list(
+                Portfolio = formatter("span",
+                                      style = x ~ style(color = madstork_cols("orange"),
+                                                        font.weight = "bold"),
+                                      x ~  percent(x)),
+                SP500 = formatter("span",
+                                  style = x ~ style(color = madstork_cols("dark grey")),
+                                  x ~  percent(x))
+              ))
+
+```
+
