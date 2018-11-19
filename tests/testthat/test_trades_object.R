@@ -4,6 +4,8 @@
 
 library(madstork)
 library(tidyverse)
+library(lubridate)
+library(checkmate)
 
 context("Trades Class")
 
@@ -75,4 +77,18 @@ test_that("trade transfer in function works as expected", {
   expect_equal(nrow(p1$trades), 2)
   expect_equal(nrow(p1$holdings), 2)
   expect_equal(p1$cash, 2000-10*100-10*.05)
+})
+
+
+test_that("gains function as expected from sell", {
+
+  p1 <- portfolio("new_port", cash=0) %>%
+    make_deposit(amount = 2000) %>%
+    make_buy(Sys.Date()-years(1), symbol = "SPY", quantity = 10, price = 100)
+
+  p1.1 <- make_sell(p1, 1, date = Sys.Date(), quantity = 10, price = 105)
+
+  expect_data_frame(p1.1$gains, nrows=1)
+  expect_equal(p1.1$gains$gain, 10 * (105-100))
+  expect_equal(p1.1$gains$id, 1)
 })

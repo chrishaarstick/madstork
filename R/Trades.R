@@ -274,9 +274,9 @@ make_sell <- function(pobj,
   new_holding$quantity <- new_holding$quantity - trade$quantity
   if(new_holding$quantity == 0) new_holding <- NULL
 
-  nid <- ifelse(nrow(pobj$gains) == 0, 1, max(pobj$gains$id))
   gain <- gains(trade, holding) %>%
-    add_tax_liability()
+    add_tax_liability() %>%
+    dplyr::mutate(id = nrow(pobj$gains) + 1)
 
   pobj <- pobj %>%
     make_deposit(date,
@@ -290,12 +290,10 @@ make_sell <- function(pobj,
 
   pobj$tax_liability <- pobj$tax_liability + gain$tax_liability
   pobj$trades <- rbind(pobj$trades, trade_df)
-  pobj$holdings <- rbind(pobj$holdings %>%
-                           dplyr::filter(id != Id),
+  pobj$holdings <- rbind(dplyr::filter(pobj$holdings, id != Id),
                          new_holding) %>%
     dplyr::arrange(id)
-  pobj$gains <- rbind(pobj$gains, gain) %>%
-    dplyr::mutate(id = dplyr::row_number())
+  pobj$gains <- rbind(pobj$gains, gain)
 
   pobj
 }
