@@ -81,11 +81,11 @@ highchart(height = 600) %>%
 ```{r}
 
 bind_rows(
-  get_portfolio_returns(pobj, today() - days(1) - hours(1)),
-  get_portfolio_returns(pobj, today() - weeks(1) - hours(1)),
-  get_portfolio_returns(pobj, today() - months(1) - hours(1)),
-  get_portfolio_returns(pobj, floor_date(today(), unit = "year")),
-  get_portfolio_returns(pobj, today() -years(1) - hours(1))
+  get_portfolio_returns(port, today() - days(1) - hours(1)),
+  get_portfolio_returns(port, today() - weeks(1) - hours(1)),
+  get_portfolio_returns(port, today() - months(1) - hours(1)),
+  get_portfolio_returns(port, floor_date(today(), unit = "year")),
+  get_portfolio_returns(port, today() -years(1) - hours(1))
 ) %>% 
   mutate(period = c("day", "week", "month", "ytd", "year")) %>% 
   gather(metric, value, -period) %>%
