@@ -123,11 +123,11 @@ get_cash <- function(pobj) {
 #' get_activity(.)
 get_activity <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
-  a <- pobj$activity
-  if (nrow(a) == 0) {
-    a
+  activity <- pobj$activity
+  if (nrow(activity) == 0) {
+    activity
   } else{
-    a %>%
+    activity %>%
       dplyr::select_at(c(
         "id",
         "date_added",
@@ -158,23 +158,24 @@ get_activity <- function(pobj) {
 get_trades <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
 
-  t <- pobj$trades
-  if (nrow(t) == 0) {
-    t
+  trades <- pobj$trades
+  if (nrow(trades) == 0) {
+    trades
   } else {
-    t %>% dplyr::select_at(
-      c(
-        "id",
-        "date_added",
-        "transaction_date",
-        "type",
-        "symbol",
-        "quantity",
-        "price",
-        "amount",
-        'desc'
+    trades %>%
+      dplyr::select_at(
+        c(
+          "id",
+          "date_added",
+          "transaction_date",
+          "type",
+          "symbol",
+          "quantity",
+          "price",
+          "amount",
+          'desc'
+        )
       )
-    )
   }
 }
 
@@ -196,11 +197,11 @@ get_trades <- function(pobj) {
 #' get_holdings(.)
 get_holdings <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
-  h <- pobj$holdings
-  if (nrow(h) == 0) {
-    h
+  holdings <- pobj$holdings
+  if (nrow(holdings) == 0) {
+    holdings
   } else{
-    h %>%
+    holdings %>%
       dplyr::mutate_at("symbol", as.character) %>%
       dplyr::select_at(c(
         "id",
@@ -225,21 +226,23 @@ get_holdings <- function(pobj) {
 get_holding <- function(pobj, .id) {
   checkmate::assert_class(pobj, "portfolio")
   stopifnot(is.numeric(.id))
-  h <- pobj$holdings
-  if (nrow(h) == 0) {
+  holdings <- pobj$holdings
+  if (nrow(holdings) == 0) {
     NULL
   } else{
-    h %>%
+    holdings %>%
       dplyr::filter_at('id', dplyr::any_vars(. == .id)) %>%
-      dplyr::select_at(c(
-        "id",
-        "date_added",
-        "transaction_date",
-        "symbol",
-        "quantity",
-        "price",
-        "desc"
-      ))
+      dplyr::select_at(
+        c(
+          "id",
+          "date_added",
+          "transaction_date",
+          "symbol",
+          "quantity",
+          "price",
+          "desc"
+        )
+      )
   }
 }
 
@@ -262,25 +265,26 @@ get_holding <- function(pobj, .id) {
 #' get_gains(.)
 get_gains <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
-  g <- pobj$gains
-  if (nrow(g) == 0) {
-    g
+  gains <- pobj$gains
+  if (nrow(gains) == 0) {
+    gains
   } else {
-    g %>% dplyr::select_at(
-      c(
-        "id",
-        "symbol",
-        "quantity",
-        "purchase_date",
-        "purchase_price",
-        "sale_date",
-        "sale_price",
-        "gain",
-        "type",
-        "tax_rate",
-        'tax_liability'
+    gains %>%
+      dplyr::select_at(
+        c(
+          "id",
+          "symbol",
+          "quantity",
+          "purchase_date",
+          "purchase_price",
+          "sale_date",
+          "sale_price",
+          "gain",
+          "type",
+          "tax_rate",
+          'tax_liability'
+        )
       )
-    )
   }
 }
 
@@ -352,11 +356,11 @@ settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FAL
 #' get_income(.)
 get_income <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
-  i <- pobj$income
-  if (nrow(i) == 0) {
-    i
+  income <- pobj$income
+  if (nrow(income) == 0) {
+    income
   } else{
-    i %>%
+    income %>%
       dplyr::select_at(
         c(
           "id",
@@ -404,7 +408,7 @@ update_holdings_market_value <- function(pobj, prices = NULL) {
   symbols <- unique(holdings$symbol)
 
   if(is.null(prices)) {
-     prices <- get_current_prices(symbols = symbols, dividends = TRUE)
+    prices <- get_current_prices(symbols = symbols, dividends = TRUE)
   }
   checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
   checkmate::assert_subset(symbols, prices$symbol)
@@ -421,21 +425,23 @@ update_holdings_market_value <- function(pobj, prices = NULL) {
       investments_share = market_value/sum(market_value),
       portfolio_share = market_value/(sum(market_value)+get_cash(pobj))
     ) %>%
-    dplyr::select_at(c(
-      "id",
-      "last_updated",
-      "symbol",
-      "quantity",
-      "price",
-      "market_value",
-      "cost_basis",
-      "unrealized_gain",
-      "dividend",
-      "annual_income",
-      'yield',
-      "investments_share",
-      "portfolio_share"
-    ))
+    dplyr::select_at(
+      c(
+        "id",
+        "last_updated",
+        "symbol",
+        "quantity",
+        "price",
+        "market_value",
+        "cost_basis",
+        "unrealized_gain",
+        "dividend",
+        "annual_income",
+        'yield',
+        "investments_share",
+        "portfolio_share"
+      )
+    )
 }
 
 #' Update Porfolio Market Value
@@ -664,29 +670,41 @@ get_portfolio_returns <- function(pobj, start_date, end_date = Sys.Date()) {
 update_dividend_income <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
 
-  new_divs <- port$income %>%
-    to_tibble() %>%
-    dplyr::filter(type == "dividend") %>%
-    dplyr::group_by(symbol) %>%
-    dplyr::summarise(date = max(transaction_date)) %>%
-    dplyr::ungroup() %>%
-    split(.$symbol) %>%
-    purrr::map_dfr(~get_dividends(as.character(.$symbol), .$date)) %>%
-    dplyr::filter(dividend > 0)
+  new_divs <- pobj$holdings %>%
+    dplyr::distinct(id, symbol, date_added) %>%
+    dplyr::mutate_at("symbol", as.character) %>%
+    dplyr::left_join(
+      pobj$income %>%
+        to_tibble() %>%
+        dplyr::filter(type == "dividend") %>%
+        dplyr::group_by(symbol) %>%
+        dplyr::summarise(last_income_date = max(transaction_date)) %>%
+        dplyr::ungroup() %>%
+        dplyr::mutate_at("symbol", as.character),
+      by = "symbol"
+    ) %>%
+    dplyr::mutate(date = dplyr::case_when(is.na(last_income_date) ~ date_added,
+                                          date_added > last_income_date ~ date_added,
+                                          TRUE ~ last_income_date + 1)) %>%
+    split(.$id) %>%
+    purrr::map_dfr(~get_dividends(as.character(.$symbol), .$date), .id = "id") %>%
+    dplyr::filter(dividend > 0) %>%
+    dplyr::mutate(rn = row_number())
 
-  for(sym in new_divs$symbol) {
 
-    div <- dplyr::filter(new_divs, symbol == sym)
-    holding <- port$holdings %>%
-      dplyr::filter(symbol == div$symbol, transaction_date < div$date) %>%
-      dplyr::summarise_at('quantity', sum)
+  for(.rn in new_divs$rn) {
 
-    port <- recieve_dividend(port,
+    div <- dplyr::filter(new_divs, rn == .rn)
+    holding <- dplyr::filter(pobj$holdings, id == div$id)
+
+    pobj <- recieve_dividend(pobj,
                              date   = div$date,
                              symbol = div$symbol,
+                             quantity = holding$quantity,
+                             dividend = div$dividend,
                              amount = div$dividend * holding$quantity)
   }
 
-  port
+  pobj
 }
 
