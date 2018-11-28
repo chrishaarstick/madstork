@@ -147,7 +147,7 @@ get_trades <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
 
   trades <- pobj$trades
-  if (nrow(t) == 0) {
+  if (nrow(trades) == 0) {
     trades
   } else {
     trades %>%
