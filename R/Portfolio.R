@@ -254,7 +254,7 @@ get_holding <- function(pobj, .id) {
 get_gains <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
   gains <- pobj$gains
-  if (nrow(g) == 0) {
+  if (nrow(gains) == 0) {
     gains
   } else {
     gains %>%
