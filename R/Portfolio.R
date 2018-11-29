@@ -22,10 +22,47 @@ new_portfolio <- function(name,
       name = name,
       cash = cash,
       tax_liability = 0,
-      holdings = tibble::tibble(),
-      activity = tibble::tibble(),
-      trades = tibble::tibble(),
-      income = tibble::tibble(),
+      date_created = Sys.Date(),
+      interest_rate = 0,
+      holdings = tibble::tibble(
+        id = integer(),
+        date_added = character(),
+        transaction_date = character(),
+        symbol = character(),
+        quantity = numeric(),
+        price = numeric(),
+        desc = character()
+      ),
+      activity = tibble::tibble(
+        date_added = character(),
+        transaction_date = character(),
+        type = character(),
+        amount = numeric(),
+        desc = character(),
+        id = integer()
+      ),
+      trades = tibble::tibble(
+        date_added = character(),
+        transaction_date = character(),
+        type = character(),
+        symbol = character(),
+        quantity = numeric(),
+        price = numeric(),
+        amount = numeric(),
+        desc = character(),
+        id = integer()
+      ),
+      income = tibble::tibble(
+        date_added = character(),
+        transaction_date = character(),
+        type = character(),
+        symbol = character(),
+        quantity = numeric(),
+        payment = numeric(),
+        amount = numeric(),
+        desc = character(),
+        id = integer()
+      ),
       gains = tibble::tibble(
         id = integer(),
         symbol = character(),
@@ -39,8 +76,30 @@ new_portfolio <- function(name,
         tax_rate = numeric(),
         tax_liability = numeric()
       ),
-      market_value = tibble::tibble(),
-      holdings_market_value = tibble::tibble()
+      market_value = tibble::tibble(
+        last_updated = as.character(),
+        cash = numeric(),
+        investments_value = numeric(),
+        investments_annual_income = numeric(),
+        loans = numeric(),
+        tax_liability = numeric(),
+        net_value = numeric()
+      ),
+      holdings_market_value = tibble::tibble(
+        id = integer(),
+        last_updated = as.character(),
+        symbol = character(),
+        quantity = numeric(),
+        price = numeric(),
+        market_value = numeric(),
+        cost_basis = numeric(),
+        unrealized_gain = numeric(),
+        dividend = numeric(),
+        annual_income = numeric(),
+        yield = numeric(),
+        investments_share = numeric(),
+        portfolio_share = numeric()
+      )
     ),
     class = "portfolio"
   )
@@ -404,11 +463,19 @@ get_income <- function(pobj) {
 update_holdings_market_value <- function(pobj, prices = NULL) {
   checkmate::assert_class(pobj, "portfolio")
   checkmate::assert_data_frame(prices, null.ok = TRUE)
+
   holdings <- get_holdings(pobj)
   symbols <- unique(holdings$symbol)
 
   if(is.null(prices)) {
-    prices <- get_current_prices(symbols = symbols, dividends = TRUE)
+    if(length(symbols) > 0) {
+      prices <- get_current_prices(symbols = symbols, dividends = TRUE)
+    } else {
+      prices <- tibble::tibble(last_updated = character(),
+                               symbol = character(),
+                               price = numeric(),
+                               dividend = numeric())
+    }
   }
   checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
   checkmate::assert_subset(symbols, prices$symbol)
