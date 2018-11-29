@@ -259,7 +259,25 @@ recieve_interest <- function(pobj,
                              amount,
                              desc = "") {
 
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
   income <- interest(date, get_cash(pobj), amount, desc)
   make_income(pobj, income)
+}
+
+
+#' Set Portfolio Interest Rate
+#'
+#' Set the rate of interest portfolio earns on cash position
+#'
+#' @param pobj portfolio object
+#' @param rate interest rate. ex - `0.05 = 5%`
+#'
+#' @return updated portfolio object
+#' @export
+set_interest_rate <- function(pobj, rate) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_numeric(rate)
+
+  pobj$interest_rate <- rate
+  pobj
 }
