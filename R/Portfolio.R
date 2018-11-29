@@ -686,6 +686,7 @@ update_dividend_income <- function(pobj) {
     dplyr::mutate(date = dplyr::case_when(is.na(last_income_date) ~ date_added,
                                           date_added > last_income_date ~ date_added,
                                           TRUE ~ last_income_date + 1)) %>%
+    dplyr::filter(date <= Sys.Date()) %>%
     split(.$id) %>%
     purrr::map_dfr(~get_dividends(as.character(.$symbol), .$date), .id = "id") %>%
     dplyr::filter(dividend > 0) %>%
