@@ -17,6 +17,7 @@ library(madstork)
 library(highcharter)
 library(formattable)
 library(lubridate)
+library(knitr)
 
 port <- params$port
 name <- capitalize(gsub("-|_", " ", port$name))
@@ -231,6 +232,132 @@ if(nrow(activity)  > 0) {
     filter = 'top') %>% 
     DT::formatCurrency(c("amount"))
 }
+
+```
+
+
+Cashflow
+=====================================  
+
+
+Column {data-width=650}
+-----------------------------------------------------------------------
+
+### Cashflow Chart
+
+```{r}
+
+
+port_income <- port$income %>%
+  group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
+  summarise(income = sum(amount))
+
+
+port_flows <- port$activity %>% 
+  filter(type %in% c("deposit"),
+         ! grepl("trade_id", desc)) %>% 
+  group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
+  summarise(deposits = sum(amount)) %>% 
+  full_join(
+    port$activity %>% 
+      filter(type %in% c("fee", "withdraw"), 
+             ! grepl("trade_id", desc)) %>% 
+      group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
+      summarise(outflows = sum(amount)) ,
+    by = "month") %>% 
+  replace_na(list(deposits = 0, outflows = 0))
+
+
+port_cash <- port$market_value %>% 
+  group_by(month = as.Date(ceiling_date(last_updated, unit = "month")) - days(1)) %>% 
+  filter(last_updated == max(last_updated)) %>% 
+  ungroup() %>% 
+  select(month, cash)
+
+
+highchart(height = 850) %>% 
+  hc_xAxis(type = "datetime") %>%
+  hc_chart(type = "area", zoomType = "xy") %>%
+  hc_tooltip(shared = TRUE) %>% 
+  hc_tooltip(pointFormat = '{series.name}: ${point.y:.0f}</span><br/>') %>% 
+  hc_yAxis_multiples(create_yaxis(3, height = c(.40, .30, .30), turnopposite = TRUE)) %>% 
+  hc_add_series(xts(port_income$income, order.by = port_income$month),
+                yAxis = 0, 
+                name = "Income",
+                type = "column",
+                color = madstork_colors["light blue"][[1]]) %>% 
+  hc_add_series(xts(port_flows$deposits, order.by = port_flows$month),
+                yAxis = 1, 
+                name = "Inflows",
+                type = "column",
+                color = "green")%>% 
+  hc_add_series(xts(port_flows$outflows, order.by = port_flows$month),
+                yAxis = 1, 
+                name = "Outflows",
+                type = "column",
+                color = madstork_colors["orange"][[1]]) %>% 
+  hc_add_series(xts(port_cash$cash, order.by = port_cash$month),
+                yAxis = 2, 
+                name = "Cash Balance",
+                type = "line",
+                color = madstork_colors["dark blue"][[1]]) %>% 
+  hc_plotOptions(area = list(
+    dataLabels = list(enabled = FALSE),
+    enableMouseTracking = TRUE)
+  ) %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = "MadStork Portfolio Income & Cashflow Chart") %>% 
+  hc_subtitle(text = name)
+
+```
+
+
+
+
+Column {data-width=350, .tabset}
+-----------------------------------------------------------------------
+
+
+### Monthly Cashflow Summary
+
+```{r}
+
+port_flows %>% 
+  full_join(
+    port_income,
+    by = "month"
+  ) %>% 
+  replace_na(list(income = 0, deposits = 0, outflows = 0)) %>% 
+  mutate(month = format(month, '%b-%y'),
+         net = income + deposits - outflows) %>% 
+  formattable(.,
+              list(income = formatter("span", x ~ currency(x, digits = 0)),
+                   deposits = formatter("span", x ~ currency(x, digits = 0)),
+                   outflows = formatter("span", x ~ currency(x, digits = 0)),
+                   net = formatter("span", 
+                                   style = x ~ style(color = case_when(x > 0 ~ "green",
+                                                                       x < 0 ~ "red",
+                                                                       TRUE ~ "grey")),
+                                   x ~  currency(x, digits = 0))))
+```
+
+
+
+### Income Activity
+
+```{r}
+
+port$income %>% 
+  select(id, transaction_date, type, symbol, amount) %>% 
+  DT::datatable(.,
+                caption = "Income Activity",
+                rownames = FALSE,
+                filter = "top",
+                options = list(
+                  pageLength = 20,
+                  lengthMenu = c(10, 20),
+                  order = list(list(1, 'desc')))) %>%
+  DT::formatCurrency(c("amount")) 
 
 ```
 
