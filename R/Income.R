@@ -183,10 +183,11 @@ recieve_dividend <- function(pobj,
     amount <- dividend * quantity
   }
   if (is.null(quantity)) {
+    sym <- symbol
     quantity <- get_holdings(pobj) %>%
-      dplyr::filter(symbol == symbol) %>%
+      dplyr::filter(symbol == sym) %>%
       dplyr::summarise_at(vars(quantity), funs(sum)) %>%
-      .$quantity
+      pull(quantity)
   }
   if (is.null(dividend)) {
     dividend <- amount / quantity
