@@ -207,15 +207,15 @@ bind_rows(mutate(port_ret, symbol = "Portfolio"),
   ungroup() %>%
   select(symbol, 
          `Maximum Drawdown` = MaximumDrawdown,
-         `Downside Deviation` = `DownsideDeviation(0%)`,
-         `Value at Risk (95%)` = `HistoricalVaR(95%)`) %>%
+         `Monthly Downside Deviation` = `DownsideDeviation(0%)`,
+         `Monthly Value at Risk (95%)` = `HistoricalVaR(95%)`) %>%
   gather(key="metric", "value", -symbol) %>%
   mutate(metric = factor(metric,
                          levels = c("Maximum Drawdown",
                                     "Monthly Downside Deviation",
                                     "Monthly Value at Risk (95%)"))) %>% 
   spread(key="symbol", "value") %>% 
-   formattable(.,
+  formattable(.,
               list(
                 Portfolio = formatter("span",
                                       style = x ~ style(color = madstork_cols("orange"),

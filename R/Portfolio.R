@@ -511,6 +511,7 @@ update_holdings_market_value <- function(pobj, prices = NULL) {
     )
 }
 
+
 #' Update Porfolio Market Value
 #'
 #' Function to update porfolio and holding's market value
