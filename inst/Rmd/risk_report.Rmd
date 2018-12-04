@@ -292,11 +292,12 @@ port_shares %>%
 
 ```{r corr-graph}
 
-est2$sigma %>%
+est$sigma %>%
   cov2cor() %>%
   hchart() %>% 
   hc_add_theme(hc_theme_smpl()) %>% 
-  hc_title(text = paste(name, "Holdings Return Correlation"))
+  hc_title(text = paste(name, "Holdings Correlation")) %>% 
+  hc_subtitle(text = "Monthly Returns")
 
 ```
 
