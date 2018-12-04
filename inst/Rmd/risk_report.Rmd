@@ -18,8 +18,10 @@ library(madstork)
 library(madstork.opt)
 library(highcharter)
 library(formattable)
+library(DT)
 library(lubridate)
 library(tidyquant)
+library(PerformanceAnalytics)
 
 port <- params$port
 nyears <- params$nyears
@@ -37,7 +39,7 @@ Column {data-width=700}
 
 ### Historical Performance
 
-```{r, warning=FALSE, message=FALSE}
+```{r chart, warning=FALSE, message=FALSE}
 
 # Get Port Shares
 port_shares <- get_symbol_portfolio_share(port)
@@ -47,7 +49,8 @@ est <- estimates(symbols    = as.character(port_shares$symbol),
                  start_date = floor_date(today() - years(nyears), unit = "month"),
                  end_date   = today(),
                  grain      = "month",
-                 periods    = 1) 
+                 periods    = 1) %>% 
+  add_shrink_sigma()
 
 # Calculate Port Returns
 port_ret <- inner_join(port_shares, est$returns, by = "symbol") %>% 
@@ -100,7 +103,7 @@ highchart(height = 500) %>%
 
 ### Monthly Return Distribution
 
-```{r}
+```{r distro}
 
 
 highchart(height = 500) %>% 
@@ -136,7 +139,7 @@ Column {data-width=300}
 
 ### Annualized Returns
 
-```{r}
+```{r ann-returns}
 bind_rows(mutate(port_ret, symbol = "Portfolio"), 
           mutate(index_ret, symbol = "SP500")) %>%
   group_by(symbol) %>%
@@ -164,7 +167,7 @@ bind_rows(mutate(port_ret, symbol = "Portfolio"),
 ### Monthly Return Statistics
 
 
-```{r}
+```{r return-stats}
 
 bind_rows(mutate(port_ret, symbol = "Portfolio"), 
           mutate(index_ret, symbol = "SP500")) %>%
@@ -194,7 +197,7 @@ bind_rows(mutate(port_ret, symbol = "Portfolio"),
 ### Risk Measures
 
 
-```{r}
+```{r risk}
 
 bind_rows(mutate(port_ret, symbol = "Portfolio"), 
           mutate(index_ret, symbol = "SP500")) %>%
@@ -209,8 +212,8 @@ bind_rows(mutate(port_ret, symbol = "Portfolio"),
   gather(key="metric", "value", -symbol) %>%
   mutate(metric = factor(metric,
                          levels = c("Maximum Drawdown",
-                                    "Downside Deviation",
-                                    "Value at Risk (95%)"))) %>% 
+                                    "Monthly Downside Deviation",
+                                    "Monthly Value at Risk (95%)"))) %>% 
   spread(key="symbol", "value") %>% 
    formattable(.,
               list(
@@ -222,6 +225,78 @@ bind_rows(mutate(port_ret, symbol = "Portfolio"),
                                   style = x ~ style(color = madstork_cols("dark grey")),
                                   x ~  percent(x))
               ))
+
+```
+
+
+
+Holdings
+=====================================
+
+
+Column {.tabset}
+------------------------------------- 
+
+### Holding Risk Summary
+```{r holding-risk-table}
+
+# Portfolio Risk Contribution
+ port_es <- est$returns %>% 
+      spread(symbol, return) %>% 
+      select(-date) %>% 
+      xts(., order.by = as.Date(unique(est$returns$date))) %>%
+      ES(., portfolio_method = "component", weights = port_shares$portfolio_share) %>% 
+      pluck("pct_contrib_MES")
+
+# Symbol Stats
+port_shares %>% 
+  inner_join(
+    est$returns %>% 
+      group_by(symbol) %>%
+      tq_performance(Ra = return,
+                     performance_fun = table.AnnualizedReturns) %>%
+      ungroup() %>% 
+      select(symbol, AnnualizedReturn, AnnualizedStdDev, `AnnualizedSharpe(Rf=0%)`) %>% 
+      setNames(c("symbol", paste0(nyears, c("yr Avg Annual Return", "yr Avg Annual StdDev", "yr Avg Annual Sharpe")))),
+    by = "symbol"
+  ) %>% 
+  inner_join(
+    est$returns %>% 
+      group_by(symbol) %>%
+      tq_performance(Ra = return,
+                     performance_fun = table.DownsideRisk) %>%
+      ungroup() %>%
+      select(symbol, 
+             `Maximum Drawdown` = MaximumDrawdown,
+             `Value at Risk (95%)` = `HistoricalVaR(95%)`),
+    by = "symbol"
+  ) %>% 
+  inner_join(
+     tibble(symbol = names(port_es),
+            `Risk Contribution` = as.numeric(port_es)), 
+    by = "symbol"
+  ) %>% 
+  datatable(
+ .,
+  caption = paste(name, "Holding Risk Summary"),
+  options = list(
+    pageLength = 20,
+    lengthMenu = c(10, 20, 50),
+    order = list(list(2, 'desc')))) %>%
+  DT::formatRound(5, 2) %>% 
+  DT::formatPercentage(c(2:4, 6:8), 2)
+
+```
+
+### Holdings Correlation Heatmap
+
+```{r corr-graph}
+
+est2$sigma %>%
+  cov2cor() %>%
+  hchart() %>% 
+  hc_add_theme(hc_theme_smpl()) %>% 
+  hc_title(text = paste(name, "Holdings Return Correlation"))
 
 ```
 
