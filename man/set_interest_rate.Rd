@@ -9,7 +9,7 @@ set_interest_rate(pobj, rate)
 \arguments{
 \item{pobj}{portfolio object}
 
-\item{rate}{interest rate. ex - `0.05 = 5%`}
+\item{rate}{interest rate. ex: 0.05 = 5 percent}
 }
 \value{
 updated portfolio object

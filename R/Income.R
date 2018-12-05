@@ -271,7 +271,7 @@ recieve_interest <- function(pobj,
 #' Set the rate of interest portfolio earns on cash position
 #'
 #' @param pobj portfolio object
-#' @param rate interest rate. ex - `0.05 = 5 percent`
+#' @param rate interest rate. ex: 0.05 = 5 percent
 #'
 #' @return updated portfolio object
 #' @export
