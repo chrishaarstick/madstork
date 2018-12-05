@@ -183,13 +183,14 @@ get_dividend <- function(symbol, start_date, end_date) {
   checkmate::assert_date(start_date)
   checkmate::assert_date(end_date)
 
-  div <- getDividends(symbol, from = start_date, to = end_date)
-  if(nrow(div) == 0){
+  div <- quantmod::getDividends(symbol, from = start_date, to = end_date)
+  div_index <- as.Date(zoo::index(div))
+  if(nrow(div) == 0 | div_index < start_date){
     tibble::tibble(date = end_date,
                    symbol = symbol,
                    dividend = 0)
   } else {
-    tibble::tibble(date = as.Date(index(div)),
+    tibble::tibble(date = div_index,
                    symbol = as.character(symbol),
                    dividend = as.numeric(div))
   }
