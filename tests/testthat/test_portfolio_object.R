@@ -3,6 +3,8 @@
 
 library(madstork)
 library(tidyverse)
+library(lubridate)
+library(testthat)
 
 context("Portfolio Class")
 
@@ -85,4 +87,8 @@ test_that("dividend update function work as expected", {
                             by = "symbol") %>%
                  filter(date >= transaction_date) %>%
                  nrow())
+
+  spy_divs2 <- get_dividends("SPY", start_date = max(spy_divs$date) + days(1))
+  expect_equal(nrow(spy_divs2), 1)
+  expect_equal(spy_divs2$dividend, 0)
 })
