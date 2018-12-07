@@ -46,7 +46,7 @@ get_ochlav <- function(symbols,
     .combine = "rbind",
     .errorhandling = error_handling
   ) %do% {
-    symbol <- getSymbols(
+    symbol <- quantmod::getSymbols(
       sym,
       from = start_date,
       to = end_date,
@@ -54,7 +54,8 @@ get_ochlav <- function(symbols,
       yahoo.warning = warning,
       auto.assign = FALSE
     ) %>%
-      to_tibble()
+      to_tibble() %>%
+      na.omit()
 
     symbol$date <- rownames(symbol)
 
