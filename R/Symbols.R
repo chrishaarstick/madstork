@@ -186,11 +186,15 @@ get_dividend <- function(symbol, start_date, end_date) {
 
   div <- quantmod::getDividends(symbol, from = start_date, to = end_date)
   div_index <- as.Date(zoo::index(div))
-  if(nrow(div) == 0 | div_index < start_date){
+
+  div <- div[div_index >= start_date]
+  div_index <- div_index[div_index >= start_date]
+
+  if(nrow(div) == 0){
     tibble::tibble(date = end_date,
                    symbol = symbol,
                    dividend = 0)
-  } else {
+  }else {
     tibble::tibble(date = div_index,
                    symbol = as.character(symbol),
                    dividend = as.numeric(div))
