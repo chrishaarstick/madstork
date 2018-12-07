@@ -54,8 +54,7 @@ get_ochlav <- function(symbols,
       yahoo.warning = warning,
       auto.assign = FALSE
     ) %>%
-      to_tibble() %>%
-      na.omit()
+      to_tibble()
 
     symbol$date <- rownames(symbol)
 
@@ -66,7 +65,8 @@ get_ochlav <- function(symbols,
       dplyr::rename(adj_close = adjusted) %>%
       dplyr::mutate(date = as.Date(date), symbol = as.character(sym)) %>%
       dplyr::select(date, symbol, open, close, high, low, adj_close, volume)
-  }
+  } %>%
+    na.omit()
 }
 
 
