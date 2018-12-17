@@ -245,6 +245,7 @@ Column {.tabset}
       spread(symbol, return) %>% 
       select(-date) %>% 
       xts(., order.by = as.Date(unique(est$returns$date))) %>%
+      na.omit() %>% 
       ES(., portfolio_method = "component", weights = port_shares$portfolio_share) %>% 
       pluck("pct_contrib_MES")
 
