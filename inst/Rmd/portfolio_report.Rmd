@@ -249,17 +249,20 @@ Column {data-width=650}
 
 
 port_income <- port$income %>%
+   mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
   group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
   summarise(income = sum(amount))
 
 
 port_flows <- port$activity %>% 
+   mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
   filter(type %in% c("deposit"),
          ! grepl("trade_id", desc)) %>% 
   group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
   summarise(deposits = sum(amount)) %>% 
   full_join(
     port$activity %>% 
+       mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
       filter(type %in% c("fee", "withdraw"), 
              ! grepl("trade_id", desc)) %>% 
       group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
