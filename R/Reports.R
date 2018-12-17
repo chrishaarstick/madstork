@@ -2,7 +2,12 @@
 
 #' Generic Report Function
 #'
+#' @param portfolio portfolio object
+#' @param output_file name of output file. Needs a html extension
+#' @param output_dir directory to write output file to
+#' @param pandoc_dir pandoc directory path
 #' @param ... additional parameters to pass to rmarkdown::render function
+#'
 #' @export
 report <- function(...) {
   UseMethod("report")
@@ -14,11 +19,7 @@ report <- function(...) {
 #'
 #' Uses portfolio_report.Rmd template in the madstork package
 #'
-#' @param portfolio portfolio object
-#' @param output_file name of output file. Needs a html extension
-#' @param output_dir directory to write output file to
-#' @param pandoc_dir pandoc directory path
-#' @param ... additional parameters to pass to rmarkdown::render function
+#' @inheritParams report
 #'
 #' @export
 report.portfolio <- function(portfolio,
