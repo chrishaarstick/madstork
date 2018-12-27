@@ -9,6 +9,14 @@ risk_report(portfolio, output_file = "risk-report.html",
   pandoc_dir = "C:/Program Files/RStudio/bin/pandoc", ...)
 }
 \arguments{
+\item{portfolio}{portfolio object}
+
+\item{output_file}{name of output file. Needs a html extension}
+
+\item{output_dir}{directory to write output file to}
+
+\item{pandoc_dir}{pandoc directory path}
+
 \item{...}{additional parameters to pass to rmarkdown::render function}
 }
 \description{
