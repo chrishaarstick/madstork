@@ -24,7 +24,7 @@ portfolio activity
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash=0) \%>\%
+portfolio("new_port") \%>\%
  make_deposit(amount = 2000) \%>\%
  make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) \%>\%
  make_sell(id = 1, quantity = 5, price = 105) \%>\%

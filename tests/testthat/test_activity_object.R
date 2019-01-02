@@ -31,11 +31,11 @@ test_that("activity validator function works as expected", {
 
 
 test_that("activity make functions work as expected", {
-  p1 <- portfolio("new_port", cash = 100) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(date = Sys.Date(), amount = 100)
-  p2 <- p1 %>% make_withdraw(date = Sys.Date(), amount = 150)
+  p2 <- p1 %>% make_withdraw(date = Sys.Date(), amount = 50)
 
-  expect_equal(p1$cash, 200)
+  expect_equal(p1$cash, 100)
   expect_equal(p2$cash, 50)
   expect_equal(p1 %>% get_activity(),
                bind_cols(id = 1, to_tibble(deposit(date = Sys.Date(), amount = 100))))

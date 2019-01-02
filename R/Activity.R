@@ -70,6 +70,19 @@ to_tibble.activity <- function(x, ...) {
 }
 
 
+# Internal Helper function to create empty activity df
+empty_activity_df <- function() {
+  tibble::tibble(
+    date_added = character(),
+    transaction_date = character(),
+    type = character(),
+    amount = numeric(),
+    desc = character(),
+    id = numeric()
+  )
+}
+
+
 #' Create Deposit Helper function
 #'
 #' Function to create a deposit activity type
@@ -108,7 +121,7 @@ deposit <- function(date, amount, desc = "") {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
 #' make_deposit(date=Sys.Date(), amount = 100)
 make_deposit <- function(pobj, date = Sys.Date(), amount, desc = "") {
   checkmate::assert_class(pobj, "portfolio")
@@ -163,10 +176,12 @@ withdraw <- function(date, amount, desc = "") {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
+#' make_deposit(date=Sys.Date(), amount = 100) %>%
 #' make_withdraw(date=Sys.Date(), amount = 50)
 make_withdraw <- function(pobj, date = Sys.Date(), amount, desc = "") {
   stopifnot(class(pobj) == "portfolio")
+
   action <- withdraw(date, amount, desc)
   action_df <- to_tibble(action) %>%
     dplyr::mutate(id = max(pobj$activity$id, 0)+1)
@@ -175,6 +190,7 @@ make_withdraw <- function(pobj, date = Sys.Date(), amount, desc = "") {
     stop("Withdraw amount greater than cash available",
          .call = FALSE)
   }
+
   pobj$cash <- pobj$cash - action$amount
   pobj$activity <- rbind(pobj$activity, action_df)
   pobj
@@ -216,18 +232,21 @@ fee <- function(date, amount, desc = ""){
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
+#' make_deposit(amount = 100) %>%
 #' incur_fee(amount = 50)
 incur_fee <- function(pobj, date = Sys.Date(), amount, desc=""){
   stopifnot(class(pobj) == "portfolio")
+
   action <- fee(date, amount, desc)
   action_df <- to_tibble(action) %>%
-    dplyr::mutate(id = max(pobj$activity$id,0)+1)
+    dplyr::mutate(id = max(pobj$activity$id, 0)+1)
 
   if (action$amount > pobj$cash) {
     stop("Fee greater than cash available",
          .call = FALSE)
   }
+
   pobj$cash <- pobj$cash - action$amount
   pobj$activity <- rbind(pobj$activity, action_df)
   pobj

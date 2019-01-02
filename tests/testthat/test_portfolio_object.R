@@ -20,13 +20,17 @@ test_that("portfolio validator function works as expected", {
 })
 
 test_that("portfolio getter functions work as expected", {
-  expect_equal(portfolio("new_port", cash=100) %>% get_cash(.), 100)
+
+  p1 <- portfolio("new_port") %>%
+    make_deposit(amount = 100)
+
+  expect_equal(get_cash(p1), 100)
 })
 
 
 test_that("portfolio setter functions work as expected", {
 
-  p1 <- portfolio("new_port", cash=100)
+  p1 <- portfolio("new_port")
   p2 <- set_interest_rate(p1, 0.01)
 
   expect_equal(p1$interest_rate, 0)
@@ -36,7 +40,8 @@ test_that("portfolio setter functions work as expected", {
 
 test_that("market value update function work as expected", {
 
-  p1 <- portfolio("new_port", cash = 1000)
+  p1 <- portfolio("new_port") %>%
+    make_deposit(amount = 1000)
   p1.1 <- update_market_value(p1)
 
   expect_equal(p1.1$market_value$net_value, 1000)
@@ -45,7 +50,7 @@ test_that("market value update function work as expected", {
 test_that("dividend update function work as expected", {
 
 
-  p1 <- portfolio("new_port", cash=0) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(as.Date("2018-01-01"), amount = 1000)
 
   p1$holdings <- bind_rows(

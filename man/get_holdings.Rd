@@ -20,6 +20,6 @@ holdings are currently held investment securities such as a stock or etf
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
 get_holdings(.)
 }

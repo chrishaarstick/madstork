@@ -26,6 +26,7 @@ subtracts fee amount from cash balance and adds record to actvity
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
+make_deposit(amount = 100) \%>\%
 incur_fee(amount = 50)
 }

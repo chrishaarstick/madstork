@@ -22,7 +22,7 @@ test_that("income helper functions internals work correctly", {
 })
 
 test_that("income execution functions work as expected", {
-  p1 <- portfolio("new_port", cash=0) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(amount = 2000) %>%
     make_buy(symbol = "SPY", quantity = 10, price = 100) %>%
     recieve_dividend(symbol = "SPY", amount = 20) %>%
@@ -39,6 +39,5 @@ test_that("income execution functions work as expected", {
                20 + 2)
   expect_equal(get_income(p1) %>% filter(id == 1) %>% .$payment, 20/10)
   expect_equal(get_income(p1) %>% filter(id == 2) %>% .$quantity, 2000-10*100-10*.05+20)
-  expect_error(p1 %>% recieve_dividend(symbol = "TLT", amount = 10))
 })
 

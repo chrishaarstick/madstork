@@ -17,6 +17,6 @@ Returns realized income only. Does not estimate future income payments
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
 get_income(.)
 }

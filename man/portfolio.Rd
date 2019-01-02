@@ -2,22 +2,18 @@
 % Please edit documentation in R/Portfolio.R
 \name{portfolio}
 \alias{portfolio}
-\title{Portfolio creation helper function}
+\title{Portfolio Object Constructor function}
 \usage{
-portfolio(name, cash = 0)
+portfolio(name, activity = NULL)
 }
 \arguments{
 \item{name}{name of portfolio. requires string input}
 
-\item{cash}{cash balance. requires numeric input. defaults to 0}
+\item{activity}{optional list of historical portfolio activity}
 }
 \value{
-returns a Porftolio object
+portfolio object
 }
 \description{
-Function to create Portfolio object. Calls internal new_portfolio and
-validate_portfolio functions
-}
-\examples{
-portfolio("new_port", cash=0)
+Function creates a new S3 portfolio object
 }

@@ -58,7 +58,7 @@ get_ochlav <- function(symbols,
 
     symbol$date <- rownames(symbol)
 
-    symbol  %>%
+    symbol %>%
       dplyr::rename_all(dplyr::funs(tolower(gsub(
         paste0(sym, "."), "", .
       )))) %>%

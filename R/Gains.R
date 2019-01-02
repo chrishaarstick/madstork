@@ -133,6 +133,24 @@ to_tibble.gains <- function(x, ...) {
 }
 
 
+# Internal function to create empty gains df
+empty_gains_df <- function() {
+  tibble::tibble(
+    id = numeric(),
+    symbol = character(),
+    quantity = numeric(),
+    purchase_date = character(),
+    purchase_price = numeric(),
+    sale_date = character(),
+    sale_price = numeric(),
+    gain = numeric(),
+    type = character(),
+    tax_rate = numeric(),
+    tax_liability = numeric()
+  )
+}
+
+
 #' Add Tax Liability function
 #'
 #' Appends the tax impact of a realized gain

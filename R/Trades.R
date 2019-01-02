@@ -94,6 +94,21 @@ to_tibble.trade <- function(x, ...) {
 }
 
 
+# Internal Trade Tibble Helper
+empty_trades_df <- function() {
+  tibble::tibble(
+    date_added = character(),
+    transaction_date = character(),
+    type = character(),
+    symbol = character(),
+    quantity = numeric(),
+    price = numeric(),
+    amount = numeric(),
+    desc = character(),
+    id = numeric()
+  )
+}
+
 #' Create Buy Trade Helper function
 #'
 #' Creates a buy type of trade object
@@ -139,7 +154,8 @@ buy <- function(date,
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 2000) %>%
+#' portfolio("new_port") %>%
+#' make_deposit(Sys.Date(), amount = 2000) %>%
 #' make_buy(symbol = "SPY", quantity = 10, price = 100)
 make_buy <- function(pobj,
                      date = Sys.Date(),
@@ -237,7 +253,7 @@ sell <- function(date,
 #'
 #' @examples
 #' library(tidyverse)
-#'  p1 <- portfolio("new_port", cash=0) %>%
+#'  p1 <- portfolio("new_port") %>%
 #'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
 #'        make_sell(id = 1, quantity = 5, price = 105)
@@ -342,7 +358,7 @@ transfer <- function(date,
 #'
 #' @examples
 #' library(tidyverse)
-#'  p1 <- portfolio("new_port", cash=0) %>%
+#'  p1 <- portfolio("new_port") %>%
 #'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
 #'        transfer_out(id = 1)
@@ -385,7 +401,7 @@ transfer_out <- function(pobj,
 #'
 #' @examples
 #' library(tidyverse)
-#'  p1 <- portfolio("new_port", cash=0) %>%
+#'  p1 <- portfolio("new_port") %>%
 #'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        transfer_in(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100)
 transfer_in <- function(pobj,

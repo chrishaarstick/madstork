@@ -34,6 +34,7 @@ history and holdings
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 2000) \%>\%
+portfolio("new_port") \%>\%
+make_deposit(Sys.Date(), amount = 2000) \%>\%
 make_buy(symbol = "SPY", quantity = 10, price = 100)
 }
