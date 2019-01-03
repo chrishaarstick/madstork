@@ -26,8 +26,12 @@ past_market_value <- function(pobj) {
 
   # Calculate past investments value
   past_investment_value <- past_holdings_value %>%
+    tidyr::complete(crossing(date, symbol)) %>%
+    dplyr::group_by(symbol) %>%
+    tidyr::fill(price, quantity, market_value, .direction = "down") %>%
+    dplyr::ungroup() %>%
     dplyr::group_by(date) %>%
-    dplyr::summarise(investments_value = sum(market_value))
+    dplyr::summarise(investments_value = sum(market_value, na.rm = TRUE))
 
   # Calculate past cash
   past_cash <- get_past_cash(pobj)
@@ -74,19 +78,17 @@ get_past_holdings <- function(pobj) {
     dplyr::ungroup()
 
   pobj$trades %>%
-    dplyr::mutate(type = factor(type, levels = c("buy", "sell", "transfer_in", "transfer_out"))) %>%
-    tidyr::spread(key = "type", value = "quantity", fill = 0, drop = FALSE) %>%
-    dplyr::filter(buy != 0 | sell != 0 | transfer_in != 0 | transfer_out != 0) %>%
-    dplyr::rename(date = transaction_date) %>%
-    dplyr::full_join(holdings_dates, by = c("date", "symbol")) %>%
-    tidyr::replace_na(list(buy = 0, sell = 0, transfer_in = 0, transfer_out = 0)) %>%
-    dplyr::group_by(symbol) %>%
+    dplyr::mutate(flow = dplyr::case_when(type %in% c("buy", "transfer_in") ~ quantity,
+                                          type %in% c("sell", "transfer_out") ~ -quantity,
+                                          TRUE ~ 0)) %>%
+    dplyr::select(symbol, date = transaction_date, flow) %>%
+    dplyr::right_join(holdings_dates, by = c("symbol", "date")) %>%
+    tidyr::replace_na(list(flow = 0)) %>%
     dplyr::arrange(date) %>%
-    dplyr::mutate_at(c("buy", "sell", "transfer_in", "transfer_out"), cumsum) %>%
-    dplyr::mutate(quantity = buy + transfer_in - sell - transfer_out) %>%
+    dplyr::group_by(symbol) %>%
+    dplyr::mutate(quantity = cumsum(flow)) %>%
     dplyr::ungroup() %>%
     dplyr::arrange(symbol, date) %>%
-    dplyr::filter(quantity != 0) %>%
     dplyr::select(date, symbol, quantity)
 }
 

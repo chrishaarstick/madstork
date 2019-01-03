@@ -5,6 +5,7 @@ library(madstork)
 library(tidyverse)
 library(lubridate)
 library(testthat)
+library(checkmate)
 
 context("Portfolio Class")
 
@@ -47,28 +48,15 @@ test_that("market value update function work as expected", {
   expect_equal(p1.1$market_value$net_value, 1000)
 })
 
+
 test_that("dividend update function work as expected", {
 
 
   p1 <- portfolio("new_port") %>%
-    make_deposit(as.Date("2018-01-01"), amount = 1000)
+    make_deposit(as.Date("2018-01-01"), amount = 5000) %>%
+    make_buy(date = as.Date("2018-01-01"), symbol = "SPY", quantity = 10, price = 100) %>%
+    make_buy(date = as.Date("2018-07-01"), symbol = "SPY", quantity = 20, price = 100)
 
-  p1$holdings <- bind_rows(
-    tibble(id = 1,
-           date_added = as.Date("2018-01-01"),
-           transaction_date = as.Date("2018-01-01"),
-           symbol = "SPY",
-           quantity = 10,
-           price = 100,
-           desc = ""),
-    tibble(id = 2,
-           date_added = as.Date("2018-07-01"),
-           transaction_date = as.Date("2018-07-01"),
-           symbol = "SPY",
-           quantity = 20,
-           price = 100,
-           desc = "")
-  )
 
   p1$income <- tibble(
     date_added = as.Date("2018-03-31"),
@@ -96,4 +84,27 @@ test_that("dividend update function work as expected", {
   spy_divs2 <- get_dividends("SPY", start_date = max(spy_divs$date) + days(1))
   expect_equal(nrow(spy_divs2), 1)
   expect_equal(spy_divs2$dividend, 0)
+})
+
+
+
+test_that("portfolio constructor with activity works as expected", {
+
+  activity_list <- list(
+    deposit(date = today(), amount = 5000),
+    buy(date = today() - days(1), symbol = "SPY", quantity = 10, price = 100),
+    buy(date = today(), symbol = "TLT", quantity = 10, price = 100),
+    sell(date = today(), symbol = "SPY", quantity = 5, price = 105)
+  )
+
+  p1 <- portfolio("test", activity = activity_list)
+
+
+  expect_data_frame(p1$holdings, nrows = 2)
+  expect_equal(p1$holdings %>%
+                 filter(symbol == "SPY") %>%
+                 pull(quantity),
+               5)
+  expect_data_frame(p1$gains, nrows = 1)
+  expect_data_frame(p1$market_value, nrows = 2)
 })

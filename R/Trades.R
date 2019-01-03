@@ -343,6 +343,7 @@ make_sell <- function(pobj,
 #' @return data.frame with possible sell trades
 #' @export
 get_sell_ids <- function(pobj,
+                         date,
                          symbol,
                          quantity) {
   checkmate::assert_class(pobj, "portfolio")
@@ -352,10 +353,12 @@ get_sell_ids <- function(pobj,
   .quantity <- quantity
   .symbol <- symbol
 
-
-  holdings <- get_holdings_market_value(pobj) %>%
+  holdings <- get_holdings(pobj) %>%
     dplyr::filter(symbol == .symbol) %>%
-    dplyr::arrange(-unrealized_gain) %>%
+    dplyr::mutate(lt_gain = dplyr::case_when(
+      transaction_date <= date - lubridate::years(1) ~ 1,
+      TRUE ~ 0)) %>%
+    dplyr::arrange(-lt_gain, price) %>%
     dplyr::select(id, symbol, quantity)
 
   sells <- tibble::tibble(
@@ -533,10 +536,12 @@ process.trade <- function(obj, pobj, trans_cost = 0.05, ...){
   } else if (obj$type == "sell") {
 
     sells <- get_sell_ids(pobj = pobj,
-                          symbols = obj$symbol,
+                          date = obj$transaction_date,
+                          symbol = obj$symbol,
                           quantity = obj$quantity)
 
     for (.id in sells$id) {
+
       s1 <- filter(sells, id == .id)
       pobj <- make_sell(pobj,
                         id = s1$id,

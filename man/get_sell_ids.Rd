@@ -4,7 +4,7 @@
 \alias{get_sell_ids}
 \title{Get Sell Trades}
 \usage{
-get_sell_ids(pobj, symbol, quantity)
+get_sell_ids(pobj, date, symbol, quantity)
 }
 \arguments{
 \item{pobj}{portfolio object}

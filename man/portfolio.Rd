@@ -15,5 +15,7 @@ portfolio(name, activity = NULL)
 portfolio object
 }
 \description{
-Function creates a new S3 portfolio object
+Function creates a new S3 portfolio object. If activity list provided,
+activity is processed, the historical market value is calculated and the
+updated portfolio is returned
 }

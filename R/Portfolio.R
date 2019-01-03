@@ -6,7 +6,9 @@
 
 #' Portfolio Object Constructor function
 #'
-#' Function creates a new S3 portfolio object
+#' Function creates a new S3 portfolio object. If activity list provided,
+#' activity is processed, the historical market value is calculated and the
+#' updated portfolio is returned
 #'
 #' @param name name of portfolio. requires string input
 #' @param activity optional list of historical portfolio activity
@@ -27,7 +29,7 @@ portfolio <- function(name, activity = NULL) {
   empty_market_value <- empty_market_value_df()
   empty_holdings_mv <- empty_holdings_market_value_df()
 
- pobj <- structure(
+  pobj <- structure(
     list(
       name = name,
       cash = 0,
@@ -46,11 +48,16 @@ portfolio <- function(name, activity = NULL) {
     class = "portfolio"
   )
 
- if(! is.null(activity)) {
+  if(! is.null(activity)) {
 
- }
+    for(i in seq_along(activity)) {
+      pobj <- process(activity[[i]], pobj)
+    }
 
- pobj
+    pobj <- past_market_value(pobj)
+  }
+
+  pobj
 }
 
 
@@ -526,7 +533,7 @@ print.portfolio <- function(x, ...){
   cat("---------------------------", "\n")
 
   if(nrow(x$market_value)>0){
-    mv <- dplyr::filter(x$market_value, last_updated == max(last_updated))
+    mv <- dplyr::filter(x$market_value, date == max(date))
     cat("Market Value as of:", as.character(mv$last_updated), "\n")
     cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
     cat("* Investments ", scales::dollar(mv$investments_value), "\n")
@@ -569,5 +576,5 @@ print.portfolio <- function(x, ...){
 #' @return updated portfolio object with activity
 #' @export
 process <- function(obj, pobj, ...) {
-  UseMethod("process", obj, pobj, ...)
+  UseMethod("process")
 }
