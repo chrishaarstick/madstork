@@ -92,9 +92,9 @@ test_that("portfolio constructor with activity works as expected", {
 
   activity_list <- list(
     deposit(date = today(), amount = 5000),
-    buy(date = today() - days(1), symbol = "SPY", quantity = 10, price = 100),
-    buy(date = today(), symbol = "TLT", quantity = 10, price = 100),
-    sell(date = today(), symbol = "SPY", quantity = 5, price = 105)
+    buy(date = as.Date("2018-12-27"), symbol = "SPY", quantity = 10, price = 100),
+    buy(date = as.Date("2018-12-28"), symbol = "TLT", quantity = 10, price = 100),
+    sell(date = as.Date("2018-12-28"), symbol = "SPY", quantity = 5, price = 105)
   )
 
   p1 <- portfolio("test", activity = activity_list)
