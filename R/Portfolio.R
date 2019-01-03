@@ -27,8 +27,7 @@ portfolio <- function(name, activity = NULL) {
   empty_market_value <- empty_market_value_df()
   empty_holdings_mv <- empty_holdings_market_value_df()
 
-
-  structure(
+ pobj <- structure(
     list(
       name = name,
       cash = 0,
@@ -46,6 +45,12 @@ portfolio <- function(name, activity = NULL) {
     ),
     class = "portfolio"
   )
+
+ if(! is.null(activity)) {
+
+ }
+
+ pobj
 }
 
 
@@ -510,8 +515,6 @@ empty_holdings_market_value_df <- function() {
 
 
 
-
-
 # Methods -----------------------------------------------------------------
 
 
@@ -528,7 +531,6 @@ print.portfolio <- function(x, ...){
     cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
     cat("* Investments ", scales::dollar(mv$investments_value), "\n")
     cat("* Cash        ", scales::dollar(mv$cash), "\n")
-    cat("* Annual Income", scales::dollar(mv$investments_annual_income),"\n\n")
   }
 
   if(nrow(x$holdings_market_value) > 0){
@@ -551,3 +553,21 @@ print.portfolio <- function(x, ...){
 
 
 
+
+# Generics ----------------------------------------------------------------
+
+
+#' Process Portfolio Activity
+#'
+#' Generic function to process madstork activity, income, and trade class
+#' objects on a portfolio
+#'
+#' @param obj activity object to process
+#' @param pobj portfolio object
+#' @param ... additional arguments to pass to the portfolio object
+#'
+#' @return updated portfolio object with activity
+#' @export
+process <- function(obj, pobj, ...) {
+  UseMethod("process", obj, pobj, ...)
+}

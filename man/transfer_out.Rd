@@ -4,7 +4,7 @@
 \alias{transfer_out}
 \title{Transfer Out Holdings function}
 \usage{
-transfer_out(pobj, id, date = Sys.Date(), desc = "")
+transfer_out(pobj, id, date = Sys.Date(), quantity, desc = "")
 }
 \arguments{
 \item{pobj}{portfolio object}
@@ -12,6 +12,8 @@ transfer_out(pobj, id, date = Sys.Date(), desc = "")
 \item{id}{holding id to sell}
 
 \item{date}{date of transaction. Date type}
+
+\item{quantity}{number of shares. numeric type}
 
 \item{desc}{trade description. string type}
 }
@@ -26,5 +28,5 @@ library(tidyverse)
  p1 <- portfolio("new_port") \%>\%
        make_deposit(Sys.Date(), amount = 2000) \%>\%
        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) \%>\%
-       transfer_out(id = 1)
+       transfer_out(id = 1, quantity = 10)
 }

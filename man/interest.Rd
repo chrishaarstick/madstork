@@ -4,7 +4,7 @@
 \alias{interest}
 \title{Create Interest Helper function}
 \usage{
-interest(date, principal, amount, desc = "")
+interest(date, principal = 1, amount, desc = "")
 }
 \arguments{
 \item{date}{date of interest payment. Date type}

@@ -252,3 +252,27 @@ incur_fee <- function(pobj, date = Sys.Date(), amount, desc=""){
   pobj
 }
 
+
+#' @rdname process
+#' @export
+process.activity <- function(obj, pobj, ...) {
+
+  checkmate::assert_class(pobj, "portfolio")
+
+  activity_fun <- dplyr::case_when(
+    obj$type == "deposit" ~ "make_deposit",
+    obj$type == "withdraw" ~ "make_withdraw",
+    obj$type == "fee" ~ "incur_fee",
+    TRUE ~ "identity"
+  ) %>%
+    match.fun()
+
+  activity_args <- list(pobj = pobj,
+                        date = obj$transaction_date,
+                        amount = obj$amount,
+                        desc = obj$desc)
+
+  pobj <- do.call("activity_fun", activity_args)
+
+  pobj
+}

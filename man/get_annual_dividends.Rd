@@ -4,7 +4,7 @@
 \alias{get_annual_dividends}
 \title{Get Annualized Security Dividends}
 \usage{
-get_annual_dividends(symbols, error_handling = "pass")
+get_annual_dividends(symbols)
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}

@@ -257,7 +257,7 @@ recieve_dividends <- function(pobj, dividends) {
 #'
 #' @examples
 #' interest(Sys.Date(), 1000, 1, "monthly interest")
-interest <- function(date, principal, amount, desc = "") {
+interest <- function(date, principal = 1, amount, desc = "") {
   validate_income(
     new_income(
       type = "interest",
@@ -314,5 +314,33 @@ set_interest_rate <- function(pobj, rate) {
   checkmate::assert_numeric(rate)
 
   pobj$interest_rate <- rate
+  pobj
+}
+
+
+#' @rdname process
+#' @export
+process.income <- function(obj, pobj, ...) {
+
+  checkmate::assert_class(pobj, "portfolio")
+
+  if(obj$type == "interest") {
+
+    pobj <- recieve_interest(pobj,
+                             date = obj$transaction_date,
+                             amount = obj$amount,
+                             desc = obj$desc)
+
+  } else if(obj$type == "dividend") {
+
+    pobj <- recieve_dividend(pobj,
+                             date = obj$transaction_date,
+                             symbol = obj$symbol,
+                             quantity = obj$quantity,
+                             dividend = obj$payment,
+                             amount = obj$amount,
+                             desc = obj$desc)
+  }
+
   pobj
 }

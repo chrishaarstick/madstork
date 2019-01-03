@@ -58,7 +58,7 @@ test_that("trade transfer out function works as expected", {
   p1 <- portfolio("new_port") %>%
     make_deposit(amount = 2000) %>%
     make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
-    transfer_out(id = 1)
+    transfer_out(id = 1, quantity = 10)
 
   expect_equal(nrow(p1$trades), 2)
   expect_equal(nrow(p1$holdings), 0)

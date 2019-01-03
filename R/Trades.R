@@ -109,6 +109,11 @@ empty_trades_df <- function() {
   )
 }
 
+
+
+# Buys --------------------------------------------------------------------
+
+
 #' Create Buy Trade Helper function
 #'
 #' Creates a buy type of trade object
@@ -205,6 +210,12 @@ make_buy <- function(pobj,
 
   pobj
 }
+
+
+
+
+# Sells -------------------------------------------------------------------
+
 
 
 #' Create Sell Trade Helper function
@@ -315,6 +326,66 @@ make_sell <- function(pobj,
 }
 
 
+
+#' Get Sell Trades
+#'
+#' Returns all possible sell trades from a portfolio object
+#'
+#' Checks current holdings and generates sell tickets based on symbol, trade
+#' amount and lot_size
+#'
+#' @param pobj portfolio object
+#' @param symbols vector of holding symbols to filter sell tickets by
+#' @param amount trade amount
+#' @param partial logical option to allow for partial trade tickets with an
+#'   quantity less than the quantity argument. default is TRUE
+#'
+#' @return data.frame with possible sell trades
+#' @export
+get_sell_ids <- function(pobj,
+                         symbol,
+                         quantity) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_character(symbol)
+  checkmate::assert_number(quantity, lower = 0)
+
+  .quantity <- quantity
+  .symbol <- symbol
+
+
+  holdings <- get_holdings_market_value(pobj) %>%
+    dplyr::filter(symbol == .symbol) %>%
+    dplyr::arrange(-unrealized_gain) %>%
+    dplyr::select(id, symbol, quantity)
+
+  sells <- tibble::tibble(
+    id = numeric(),
+    symbol = character(),
+    quantity = numeric())
+
+  for(i in 1:nrow(holdings)) {
+
+    if(.quantity > 0) {
+      sell <- holdings %>%
+        dplyr::slice(i) %>%
+        dplyr::select(id, symbol, quantity) %>%
+        dplyr::mutate(quantity = dplyr::case_when(.quantity <= quantity ~ .quantity,
+                                                  TRUE ~ quantity))
+      sells <- rbind(sells, sell)
+      .quantity <- .quantity - sell$quantity
+    }
+  }
+
+  sells
+}
+
+
+
+
+# Transfers ---------------------------------------------------------------
+
+
+
 #' Create Transfer Trade Helper
 #'
 #' Create a valid transfer object of class Trade
@@ -361,29 +432,35 @@ transfer <- function(date,
 #'  p1 <- portfolio("new_port") %>%
 #'        make_deposit(Sys.Date(), amount = 2000) %>%
 #'        make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
-#'        transfer_out(id = 1)
+#'        transfer_out(id = 1, quantity = 10)
 transfer_out <- function(pobj,
                          id,
                          date = Sys.Date(),
+                         quantity,
                          desc = "") {
   stopifnot(class(pobj) == "portfolio")
   stopifnot(class(id) == "numeric")
-  holding <- pobj %>% get_holding(id)
+  holding <- get_holding(pobj, id)
   Id <- id
 
   if (nrow(holding) == 0) {
     stop("No holdings returned. Check for correct Trade ID",
          .call = FALSE)
   }
+
   symbol <- as.character(holding$symbol)
-  trade <- transfer(date, symbol, holding$quantity, holding$price, type = "out", desc)
+  trade <- transfer(date, symbol, quantity, holding$price, type = "out", desc)
   trade_df <- to_tibble(trade) %>%
     dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
-
   pobj$trades <- rbind(pobj$trades, trade_df)
-  pobj$holdings <- pobj$holdings %>%
-    dplyr::filter(id != Id) %>%
-    dplyr::arrange(id)
+
+  if(quantity == holding$quantity) {
+    pobj$holdings <- pobj$holdings %>%
+      dplyr::filter(id != Id) %>%
+      dplyr::arrange(id)
+  } else {
+    pobj$holdings[pobj$holdings$id == Id, quantity] <- holding$quantity - quantity
+  }
 
   pobj
 }
@@ -432,3 +509,62 @@ transfer_in <- function(pobj,
   pobj
 }
 
+
+# Methods -----------------------------------------------------------------
+
+
+#' @param trans_cost transaction costs per share. default is 5cents ~ 0.05
+#'
+#' @rdname process
+#' @export
+process.trade <- function(obj, pobj, trans_cost = 0.05, ...){
+  checkmate::assert_class(pobj, "portfolio")
+
+  if(obj$type == "buy") {
+
+    pobj <- make_buy(pobj,
+                     date = obj$transaction_date,
+                     symbol = obj$symbol,
+                     quantity = obj$quantity,
+                     price = obj$price,
+                     desc = obj$desc,
+                     trans_cost = trans_cost)
+
+  } else if (obj$type == "sell") {
+
+    sells <- get_sell_ids(pobj = pobj,
+                          symbols = obj$symbol,
+                          quantity = obj$quantity)
+
+    for (.id in sells$id) {
+      s1 <- filter(sells, id == .id)
+      pobj <- make_sell(pobj,
+                        id = s1$id,
+                        date = obj$transaction_date,
+                        quantity = s1$quantity,
+                        price = obj$price,
+                        desc = obj$desc,
+                        trans_cost = trans_cost)
+    }
+
+  } else if (obj$type == "transfer_in") {
+
+    pobj <- transfer_in(pobj,
+                        date = obj$transaction_date,
+                        symbol = obj$symbol,
+                        quantity = obj$quantity,
+                        price = obj$price,
+                        desc = obj$desc)
+
+  } else if (obj$type == "transfer_out") {
+
+    pobj <- transfer_in(pobj,
+                        date = obj$transaction_date,
+                        symbol = obj$symbol,
+                        quantity = obj$quantity,
+                        price = obj$price,
+                        desc = obj$desc)
+  }
+
+  pobj
+}
