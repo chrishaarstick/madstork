@@ -237,7 +237,7 @@ get_past_tax_liability <- function(pobj) {
     summarise_at('tax_liability', sum) %>%
     right_join(past_holding_dates, by = "date") %>%
     replace_na(list(tax_liability = 0)) %>%
-    group_by(year = year(date)) %>%
+    group_by(year = lubridate::year(date)) %>%
     mutate_at('tax_liability', cumsum) %>%
     ungroup() %>%
     select(date, tax_liability)
