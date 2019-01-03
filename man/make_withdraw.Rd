@@ -26,6 +26,7 @@ subtracts withdraw amount from cash balance and adds record to actvity
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
+make_deposit(date=Sys.Date(), amount = 100) \%>\%
 make_withdraw(date=Sys.Date(), amount = 50)
 }

@@ -18,6 +18,7 @@ library(highcharter)
 library(formattable)
 library(lubridate)
 library(knitr)
+library(xts)
 
 port <- params$port
 name <- capitalize(gsub("-|_", " ", port$name))
@@ -28,7 +29,7 @@ Summary
 =====================================  
 
 
-Column {data-width=700}
+Column {data-width=650}
 -----------------------------------------------------------------------
 
 ### Portfolio Performance
@@ -36,44 +37,94 @@ Column {data-width=700}
 ```{r}
 
 mv <- get_market_value(port)
-highchart(height = 600) %>% 
-  hc_xAxis(type = "datetime") %>%
-  hc_chart(type = "area",
-           zoomType = "xy") %>%
-  hc_tooltip(shared = TRUE) %>% 
-  hc_tooltip( pointFormat = '{series.name}: ${point.y:.0f}</span><br/>') %>%
-  hc_add_series_times_values(dates = mv$last_updated,
+
+
+highchart(type = "stock", height = 900) %>% 
+  hc_yAxis_multiples(
+    create_yaxis(3, height = c(3, 2, 2), turnopposite = TRUE)
+  ) %>% 
+  hc_add_series_times_values(dates = mv$date,
                              values = mv$net_value,
-                             color =  as.character(madstork_cols("light grey")),
+                             color = as.character(madstork_cols("dark grey")),
                              name = "Net Value",
                              id = "netvalue",
-                             type = "area") %>% 
-  hc_add_series_times_values(dates = mv$last_updated,
-                             values = mv$net_value,
-                             color =  as.character(madstork_cols("dark grey")),
-                             name = "Net Value",
-                             id = "netvalue",
-                             type = "line") %>% 
-  hc_add_series_times_values(dates = mv$last_updated,
+                             type = "line",
+                             yAxis = 0) %>% 
+  hc_add_series_times_values(dates = mv$date,
                              values = mv$investments_value,
                              color = as.character(madstork_cols("orange")),
                              name = "Investments",
                              fillOpacity = .5,
-                             type = "line") %>%
-  hc_add_series_times_values(dates = mv$last_updated,
+                             type = "line",
+                             yAxis = 1) %>%
+  hc_add_series_times_values(dates = mv$date,
                              values = mv$cash,
                              color = as.character(madstork_cols("dark blue")),
                              name = "Cash",
                              fillOpacity = .5,
-                             type = "line") %>%
+                             type = "line",
+                             yAxis = 2) %>% 
+  hc_tooltip(shared = TRUE) %>% 
+  hc_tooltip( pointFormat = '{series.name}: ${point.y:,.0f}</span><br/>') %>%
   hc_plotOptions(area = list(
     dataLabels = list(enabled = FALSE),
     enableMouseTracking = TRUE)
   ) %>% 
   hc_add_theme(hc_theme_smpl()) %>% 
-  hc_title(text = "MadStork Portfolio Performance Chart") %>% 
+  hc_title(text = "Portfolio Performance Chart") %>% 
   hc_subtitle(text = name)
 
+```
+
+
+
+
+
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Summary
+
+```{r}
+knitr::kable(
+  c("last updated" = max(port$market_value$last_updated),
+    "initialized on" = port$date_initialized,
+    "created on" = port$date_created),
+  col.names = port$name)
+```
+
+
+### Market Value
+
+```{r}
+get_market_value(port) %>% 
+  filter(date == max(date)) %>% 
+  filter(last_updated == max(last_updated)) %>% 
+  select(net_value, investments_value, cash) %>%
+  gather(metric, amount) %>% 
+  formattable(.,
+              list(amount = formatter("span",
+                                      style = x ~ style(color = madstork_cols("dark blue"),
+                                                        font.weight = "bold"),
+                                      x ~ currency(x, digits = 0))))
+```
+
+
+### Annual Income
+
+```{r}
+port$holdings_market_value %>% 
+  summarise(investments_annual_income = sum(annual_income)) %>% 
+  mutate(tax_liability = port$tax_liability,
+         net_income = investments_annual_income - tax_liability) %>% 
+  rename(annual_income = investments_annual_income) %>% 
+  gather(metric, amount) %>% 
+  formattable(.,
+              list(amount = formatter("span",
+                                      style = x ~ style(color = madstork_cols("orange"),
+                                                        font.weight = "bold"),
+                                      x ~ currency(x, digits = 0))))
 ```
 
 
@@ -135,46 +186,29 @@ bind_rows(
 
 
 
-Column {data-width=300}
+Holdings 
+=====================================  
+
+Column {data-width=1000, .tabset}
 -----------------------------------------------------------------------
 
-### Summary
+### Holdings Summary
+
 
 ```{r}
-knitr::kable(
-  c("last updated" = max(port$market_value$last_updated),
-    "created on" = min(port$market_value$last_updated)),
-  col.names = port$name)
-```
+holdings <- get_holdings_market_value(port)
+DT::datatable(
+  holdings[, -1],
+  caption = paste("Last updated on", as.character(holdings[1,1])),
+  options = list(
+    pageLength = 20,
+    lengthMenu = c(10, 20),
+    order = list(list(5, 'desc')))) %>%
+  DT::formatCurrency(c('market_value', 'cost_basis', "unrealized_gain",
+                       "dividend", "annual_income")) %>%
+  DT::formatRound(c("price"), 2) %>% 
+  DT::formatPercentage(c('yield', 'investments_share', "portfolio_share"), 2)
 
-
-### Market Value
-
-```{r}
-get_market_value(port) %>% 
-  filter(last_updated == max(last_updated)) %>% 
-  select(net_value, investments_value, cash) %>%
-  gather(metric, amount) %>% 
-  formattable(.,
-              list(amount = formatter("span",
-                                      style = x ~ style(color = madstork_cols("dark blue"), font.weight = "bold"),
-                                      x ~ currency(x, digits = 0))))
-```
-
-
-### Annual Income
-
-```{r}
-get_market_value(port) %>% 
-  filter(last_updated == max(last_updated)) %>% 
-  select(investments_annual_income, tax_liability) %>%
-  mutate(net_income = investments_annual_income - tax_liability) %>% 
-  rename(annual_income = investments_annual_income) %>% 
-  gather(metric, amount) %>% 
-  formattable(.,
-              list(amount = formatter("span",
-                                      style = x ~ style(color = madstork_cols("orange"), font.weight = "bold"),
-                                      x ~ currency(x, digits = 0))))
 ```
 
 
@@ -196,25 +230,6 @@ highchart() %>%
                                                 color = '#ffffff'))
 ```
 
-
-Holdings
-=====================================  
-
-```{r}
-holdings <- get_holdings_market_value(port)
-DT::datatable(
-  holdings[, -1],
-  caption = paste("Last updated on", as.character(holdings[1,1])),
-  options = list(
-    pageLength = 20,
-    lengthMenu = c(10, 20),
-    order = list(list(5, 'desc')))) %>%
-  DT::formatCurrency(c('market_value', 'cost_basis', "unrealized_gain",
-                       "dividend", "annual_income")) %>%
-  DT::formatRound(c("price"), 2) %>% 
-  DT::formatPercentage(c('yield', 'investments_share', "portfolio_share"), 2)
-
-```
 
 
 Activity
@@ -249,7 +264,7 @@ Column {data-width=650}
 
 
 port_income <- port$income %>%
-   mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
+  mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
   group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
   summarise(income = sum(amount))
 

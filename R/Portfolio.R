@@ -6,141 +6,65 @@
 
 #' Portfolio Object Constructor function
 #'
-#' Function creates a new S3 portfolio object
+#' Function creates a new S3 portfolio object. If activity list provided,
+#' activity is processed, the historical market value is calculated and the
+#' updated portfolio is returned
 #'
 #' @param name name of portfolio. requires string input
-#' @param cash cash balance. requires numeric input
+#' @param activity optional list of historical portfolio activity
 #'
+#' @export
 #' @return portfolio object
-new_portfolio <- function(name,
-                          cash) {
-  stopifnot(is.character(name))
-  stopifnot(is.numeric(cash))
+portfolio <- function(name, activity = NULL) {
 
-  structure(
+  checkmate::assert_character(name)
+  checkmate::assert_list(activity, null.ok = TRUE)
+
+  # Create empty structures
+  empty_holdings <- empty_holdings_df()
+  empty_activity <- empty_activity_df()
+  empty_trades <- empty_trades_df()
+  empty_income <- empty_income_df()
+  empty_gains <- empty_gains_df()
+  empty_market_value <- empty_market_value_df()
+  empty_holdings_mv <- empty_holdings_market_value_df()
+
+  pobj <- structure(
     list(
       name = name,
-      cash = cash,
+      cash = 0,
       tax_liability = 0,
       date_created = Sys.Date(),
+      date_initialized = Sys.Date(),
       interest_rate = 0,
-      holdings = tibble::tibble(
-        id = integer(),
-        date_added = character(),
-        transaction_date = character(),
-        symbol = character(),
-        quantity = numeric(),
-        price = numeric(),
-        desc = character()
-      ),
-      activity = tibble::tibble(
-        date_added = character(),
-        transaction_date = character(),
-        type = character(),
-        amount = numeric(),
-        desc = character(),
-        id = integer()
-      ),
-      trades = tibble::tibble(
-        date_added = character(),
-        transaction_date = character(),
-        type = character(),
-        symbol = character(),
-        quantity = numeric(),
-        price = numeric(),
-        amount = numeric(),
-        desc = character(),
-        id = integer()
-      ),
-      income = tibble::tibble(
-        date_added = character(),
-        transaction_date = character(),
-        type = character(),
-        symbol = character(),
-        quantity = numeric(),
-        payment = numeric(),
-        amount = numeric(),
-        desc = character(),
-        id = integer()
-      ),
-      gains = tibble::tibble(
-        id = integer(),
-        symbol = character(),
-        quantity = numeric(),
-        purchase_date = character(),
-        purchase_price = numeric(),
-        sale_date = character(),
-        sale_price = numeric(),
-        gain = numeric(),
-        type = character(),
-        tax_rate = numeric(),
-        tax_liability = numeric()
-      ),
-      market_value = tibble::tibble(
-        last_updated = as.character(),
-        cash = numeric(),
-        investments_value = numeric(),
-        investments_annual_income = numeric(),
-        loans = numeric(),
-        tax_liability = numeric(),
-        net_value = numeric()
-      ),
-      holdings_market_value = tibble::tibble(
-        id = integer(),
-        last_updated = as.character(),
-        symbol = character(),
-        quantity = numeric(),
-        price = numeric(),
-        market_value = numeric(),
-        cost_basis = numeric(),
-        unrealized_gain = numeric(),
-        dividend = numeric(),
-        annual_income = numeric(),
-        yield = numeric(),
-        investments_share = numeric(),
-        portfolio_share = numeric()
-      )
+      holdings = empty_holdings,
+      activity = empty_activity,
+      trades = empty_trades,
+      income = empty_income,
+      gains = empty_gains,
+      market_value = empty_market_value,
+      holdings_market_value = empty_holdings_mv
     ),
     class = "portfolio"
   )
-}
 
+  if(! is.null(activity)) {
 
+    for(i in seq_along(activity)) {
+      pobj <- process(activity[[i]], pobj)
+    }
 
-#' Portfolio Object Validation function
-#'
-#' Validator function to check for valid inputs
-#'
-#' @param x portfolio object
-#'
-#' @return valid portfolio object
-validate_portfolio <- function(x) {
-  if (x$cash < 0) {
-    stop("Loans not allowed - initial cash balance should be >= 0",
-         .call = F)
+    pobj <- past_market_value(pobj)
   }
-  x
+
+  pobj
 }
 
 
 
-#' Portfolio creation helper function
-#'
-#' Function to create Portfolio object. Calls internal new_portfolio and
-#' validate_portfolio functions
-#'
-#' @param name name of portfolio. requires string input
-#' @param cash cash balance. requires numeric input. defaults to 0
-#'
-#' @return returns a Porftolio object
-#' @export
-#'
-#' @examples
-#' portfolio("new_port", cash=0)
-portfolio <- function(name,
-                      cash = 0) {
-  validate_portfolio(new_portfolio(name, cash))
-}
+
+
+# Getters -----------------------------------------------------------------
 
 
 
@@ -155,7 +79,7 @@ portfolio <- function(name,
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
 #' get_cash(.)
 get_cash <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
@@ -212,7 +136,7 @@ get_activity <- function(pobj) {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
 #' get_trades(.)
 get_trades <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
@@ -252,7 +176,7 @@ get_trades <- function(pobj) {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
 #' get_holdings(.)
 get_holdings <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
@@ -320,7 +244,7 @@ get_holding <- function(pobj, .id) {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
 #' get_gains(.)
 get_gains <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
@@ -348,58 +272,6 @@ get_gains <- function(pobj) {
 }
 
 
-
-#' Get Portfolio Tax Liability
-#'
-#' @param pobj portfolio object
-#'
-#' @return Porfolio's current tax liability
-#' @export
-#'
-#' @examples
-#' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
-#' get_tax_liability(.)
-get_tax_liability <- function(pobj) {
-  checkmate::assert_class(pobj, "portfolio")
-  pobj$tax_liability
-}
-
-
-#' Settle Portfolio Tax Liability
-#'
-#' Function to settle the tax liabilty. Option to make cash withdraw and add to
-#' portfolio activity
-#'
-#' @param pobj portfolio object
-#' @param date date of transaction. default is current date
-#' @param amount amount of tax settlement
-#' @param withdraw logical option to make a cash withdraw from portfolio
-#'
-#' @return updated portfolio object
-#' @export
-#'
-#' @examples
-#'library(tidyverse)
-#'portfolio("new_port", cash=0) %>%
-#'  make_deposit(amount = 2000) %>%
-#'  make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
-#'  make_sell(id = 1, quantity = 5, price = 105) %>%
-#'  settle_tax_liability(amount = 7.5, withdraw = TRUE)
-settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FALSE){
-  checkmate::assert_class(pobj, "portfolio")
-
-  if(withdraw){
-    pobj <- make_withdraw(pobj, date, amount, desc = "Tax Payment")
-  }
-  pobj$tax_liability <- pobj$tax_liability - amount
-
-
-  pobj
-}
-
-
-
 #' Get Portfolio Investment Income
 #'
 #' Returns realized income only. Does not estimate future income payments
@@ -411,7 +283,7 @@ settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FAL
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 100) %>%
+#' portfolio("new_port") %>%
 #' get_income(.)
 get_income <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
@@ -436,124 +308,21 @@ get_income <- function(pobj) {
 }
 
 
-
-
-#' Updated Porfolio Holding's Market Value
-#'
-#' Updateds current market price and annual dividends for portfolio holdings.
-#' Calculates market value, income and yield
+#' Get Portfolio Tax Liability
 #'
 #' @param pobj portfolio object
-#' @param prices tibble with symbol prices. requires symbol, and price
-#'   columns
 #'
-#' @return tibble with portfolio's holdings market value
-#' @export
-#' @importFrom stats weighted.mean
-#'
-#' @examples
-#' \dontrun{
-#' p1 <- portfolio("new_port", cash=0) %>%
-#'  make_deposit(amount = 5000) %>%
-#'  make_buy(Sys.Date()-365, symbol = "SPY", quantity = 10, price = 200) %>%
-#'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
-#'  update_holdings_market_value(p1)
-#' }
-#'
-update_holdings_market_value <- function(pobj, prices = NULL) {
-  checkmate::assert_class(pobj, "portfolio")
-  checkmate::assert_data_frame(prices, null.ok = TRUE)
-
-  holdings <- get_holdings(pobj)
-  symbols <- unique(holdings$symbol)
-
-  if(is.null(prices)) {
-    if(length(symbols) > 0) {
-      prices <- get_current_prices(symbols = symbols, dividends = TRUE)
-    } else {
-      prices <- tibble::tibble(last_updated = character(),
-                               symbol = character(),
-                               price = numeric(),
-                               dividend = numeric())
-    }
-  }
-  checkmate::assert_subset(c("symbol", "price", "dividend"), colnames(prices))
-  checkmate::assert_subset(symbols, prices$symbol)
-
-  holdings %>%
-    dplyr::select(id, symbol, quantity, cost = price, date_added) %>%
-    dplyr::inner_join(prices, by = "symbol") %>%
-    dplyr::mutate(
-      market_value = quantity * price,
-      cost_basis = quantity * cost,
-      unrealized_gain = quantity * (price - cost),
-      annual_income = quantity * dividend,
-      yield = dividend / price,
-      investments_share = market_value/sum(market_value),
-      portfolio_share = market_value/(sum(market_value)+get_cash(pobj))
-    ) %>%
-    dplyr::select_at(
-      c(
-        "id",
-        "last_updated",
-        "symbol",
-        "quantity",
-        "price",
-        "market_value",
-        "cost_basis",
-        "unrealized_gain",
-        "dividend",
-        "annual_income",
-        'yield',
-        "investments_share",
-        "portfolio_share"
-      )
-    )
-}
-
-
-#' Update Porfolio Market Value
-#'
-#' Function to update porfolio and holding's market value
-#'
-#' Function appends portfolio's market value record for historical analysis and
-#' overwrites the holdings market value
-#'
-#' @inheritParams update_holdings_market_value
-#'
-#' @return Updated Porfolio object with new market value
+#' @return Porfolio's current tax liability
 #' @export
 #'
 #' @examples
-#' \dontrun{
-#' p1 <- portfolio("new_port", cash=0) %>%
-#'  make_deposit(amount = 5000) %>%
-#'  make_buy(Sys.Date()-365, symbol = "SPY", quantity = 10, price = 200) %>%
-#'  make_buy(Sys.Date()-365, symbol = "TLT", quantity = 25, price = 100)
-#'  update_market_value(p1)
-#' }
-update_market_value <- function(pobj, prices = NULL) {
+#' library(tidyverse)
+#' portfolio("new_port") %>%
+#' get_tax_liability(.)
+get_tax_liability <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
-
-  holdings <- get_holdings(pobj)
-  holdings_market_value <- update_holdings_market_value(pobj, prices)
-
-  current_market_value <- tibble::tibble(
-    last_updated = Sys.time(),
-    cash = as.numeric(get_cash(pobj)),
-    investments_value = sum(holdings_market_value$market_value),
-    investments_annual_income = sum(holdings_market_value$annual_income),
-    loans = as.numeric(0),
-    tax_liability = as.numeric(get_tax_liability(pobj))
-  ) %>%
-    dplyr::mutate(net_value = cash + investments_value - loans - tax_liability)
-
-  pobj$holdings_market_value <- holdings_market_value
-  pobj$market_value <- rbind(pobj$market_value, current_market_value)
-
-  pobj
+  pobj$tax_liability
 }
-
 
 
 #' Get Portfolio Market Value
@@ -564,7 +333,6 @@ update_market_value <- function(pobj, prices = NULL) {
 #' @export
 get_market_value <- function(pobj){
   checkmate::assert_class(pobj, "portfolio")
-
   pobj$market_value
 }
 
@@ -577,7 +345,6 @@ get_market_value <- function(pobj){
 #' @export
 get_holdings_market_value <- function(pobj){
   checkmate::assert_class(pobj, "portfolio")
-
   pobj$holdings_market_value
 }
 
@@ -600,37 +367,68 @@ get_symbol_portfolio_share <- function(pobj) {
 
 
 
-#'@export
-print.portfolio <- function(x, ...){
-  checkmate::assert_class(x, "portfolio")
+# Functions ---------------------------------------------------------------
 
-  cat("Portfolio", x$name, "\n")
-  cat("---------------------------", "\n")
 
-  if(nrow(x$market_value)>0){
-    mv <- dplyr::filter(x$market_value, last_updated == max(last_updated))
-    cat("Market Value as of:", as.character(mv$last_updated), "\n")
-    cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
-    cat("* Investments ", scales::dollar(mv$investments_value), "\n")
-    cat("* Cash        ", scales::dollar(mv$cash), "\n")
-    cat("* Annual Income", scales::dollar(mv$investments_annual_income),"\n\n")
+#' Settle Portfolio Tax Liability
+#'
+#' Function to settle the tax liabilty. Option to make cash withdraw and add to
+#' portfolio activity
+#'
+#' @param pobj portfolio object
+#' @param date date of transaction. default is current date
+#' @param amount amount of tax settlement
+#' @param withdraw logical option to make a cash withdraw from portfolio
+#'
+#' @return updated portfolio object
+#' @export
+#'
+#' @examples
+#'library(tidyverse)
+#'portfolio("new_port") %>%
+#'  make_deposit(amount = 2000) %>%
+#'  make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
+#'  make_sell(id = 1, quantity = 5, price = 105) %>%
+#'  settle_tax_liability(amount = 7.5, withdraw = TRUE)
+settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FALSE){
+  checkmate::assert_class(pobj, "portfolio")
+
+  if(withdraw){
+    pobj <- make_withdraw(pobj, date, amount, desc = "Tax Payment")
   }
+  pobj$tax_liability <- pobj$tax_liability - amount
 
-  if(nrow(x$holdings_market_value) > 0){
-    cat("Top 5 Holdings by Market Value:", "\n")
-    x$holdings_market_value %>%
-      dplyr::top_n(5, market_value) %>%
-      dplyr::arrange(-market_value) %>%
-      dplyr::select(symbol, market_value, cost_basis, unrealized_gain) %>%
-      print()
-    cat("\n")
-  }
 
-  cat("Recent Activity:", '\n')
-  get_activity(x) %>%
-    dplyr::top_n(5, id) %>%
-    dplyr::arrange(-id) %>%
-    print()
+  pobj
+}
+
+
+#' Get Portfolio Return
+#'
+#' Function extracts portfolio market values and calculates returns for given
+#' time horizon. Function calculates the net investment value which is return on
+#' invests only (net cash change)
+#'
+#' @param pobj portfolio object
+#' @param start_date starting date for return horizon. Date class required
+#' @param end_date end date for return horizon. Date class required
+#'
+#' @return data.frame with cash, investments, net investment and net value
+#'   return statistic
+#' @export
+get_portfolio_returns <- function(pobj, start_date, end_date = Sys.Date()) {
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_subset(class(start_date), c("Date", "POSIXlt", "POSIXt"))
+  checkmate::assert_subset(class(end_date), c("Date", "POSIXlt", "POSIXt"))
+
+  get_market_value(pobj) %>%
+    dplyr::filter(date >= start_date, date <= end_date) %>%
+    dplyr::group_by(date) %>%
+    dplyr::filter(last_updated == max(last_updated)) %>%
+    dplyr::ungroup() %>%
+    #dplyr::mutate(net_investment_value = investments_value + cash - c(0, diff(cash))) %>%
+    dplyr::summarise_at(c("cash", "investments_value", "net_value"),
+                        funs((last(.) - first(.))/first(.)))
 }
 
 
@@ -676,104 +474,107 @@ load_portfolio <- function(path){
 }
 
 
-#' Get Portfolio Return
-#'
-#' Function extracts portfolio market values and calculates returns for given
-#' time horizon. Function calculates the net investment value which is return on
-#' invests only (net cash change)
-#'
-#' @param pobj portfolio object
-#' @param start_date starting date for return horizon. Date class required
-#' @param end_date end date for return horizon. Date class required
-#'
-#' @return data.frame with cash, investments, net investment and net value
-#'   return statistic
-#' @export
-get_portfolio_returns <- function(pobj, start_date, end_date = Sys.Date()) {
-  checkmate::assert_class(pobj, "portfolio")
-  checkmate::assert_subset(class(start_date), c("Date", "POSIXlt", "POSIXt"))
-  checkmate::assert_subset(class(end_date), c("Date", "POSIXlt", "POSIXt"))
+# Internal helper function for creating empty holdings df
+empty_holdings_df <- function() {
+  tibble::tibble(
+    id = integer(),
+    date_added = character(),
+    transaction_date = character(),
+    symbol = character(),
+    quantity = numeric(),
+    price = numeric(),
+    desc = character()
+  )
+}
 
-  cash_net <- pobj$activity %>%
-    dplyr::filter( !grepl("trade|income", desc))  %>%
-    dplyr::filter(transaction_date >= start_date) %>%
-    dplyr::summarise(net = sum(case_when(type == "fee" ~ -amount,
-                                         type == "withdraw" ~ -amount,
-                                         type == "deposit" ~ amount,
-                                         TRUE ~ amount)))
 
-  str_vals <- get_market_value(pobj) %>%
-    dplyr::filter(last_updated >= start_date) %>%
-    dplyr::filter(last_updated == min(last_updated)) %>%
-    dplyr::mutate(net_investment_value = investments_value) %>%
-    dplyr::select(cash, investments_value, net_investment_value, net_value)
+# Internal Helper function to create an empty market-value df
+empty_market_value_df <- function() {
+  tibble::tibble(
+    last_updated = as.character(),
+    date = as.character(),
+    cash = numeric(),
+    investments_value = numeric(),
+    loans = numeric(),
+    tax_liability = numeric(),
+    net_value = numeric()
+  )
+}
 
-  diff_vals <- get_market_value(pobj) %>%
-    dplyr::filter(last_updated >= start_date) %>%
-    dplyr::filter(last_updated == min(last_updated) |
-                    last_updated == max(last_updated)) %>%
-    dplyr::summarise_at(c("cash", "investments_value", "net_value"),
-                        funs(last(.) - first(.))) %>%
-    dplyr::mutate(net_investment_value = investments_value + cash - cash_net$net) %>%
-    dplyr::select(cash, investments_value, net_investment_value, net_value)
-
-  diff_vals / str_vals
+# Internal helper function to create an empty holdings market value df
+empty_holdings_market_value_df <- function() {
+  tibble::tibble(
+    id = integer(),
+    last_updated = as.character(),
+    symbol = character(),
+    quantity = numeric(),
+    price = numeric(),
+    market_value = numeric(),
+    cost_basis = numeric(),
+    unrealized_gain = numeric(),
+    dividend = numeric(),
+    annual_income = numeric(),
+    yield = numeric(),
+    investments_share = numeric(),
+    portfolio_share = numeric()
+  )
 }
 
 
 
-#' Update Dividend Income
-#'
-#' Auto dividend income function. Function searches for last dividend payment
-#' for each symbol holding, gets all subsequent dividends and updates the
-#' portfolio
-#'
-#' Function to be used in daily portfolio-update script to remove need for
-#' manual dividend updating
-#'
-#' @param pobj portfolio object
-#'
-#' @return updated portfolio object
-#' @export
-update_dividend_income <- function(pobj) {
-  checkmate::assert_class(pobj, "portfolio")
-
-  new_divs <- pobj$holdings %>%
-    dplyr::distinct(id, symbol, date_added) %>%
-    dplyr::mutate_at("symbol", as.character) %>%
-    dplyr::left_join(
-      pobj$income %>%
-        to_tibble() %>%
-        dplyr::filter(type == "dividend") %>%
-        dplyr::group_by(symbol) %>%
-        dplyr::summarise(last_income_date = max(transaction_date)) %>%
-        dplyr::ungroup() %>%
-        dplyr::mutate_at("symbol", as.character),
-      by = "symbol"
-    ) %>%
-    dplyr::mutate(date = dplyr::case_when(is.na(last_income_date) ~ date_added,
-                                          date_added > last_income_date ~ date_added,
-                                          TRUE ~ last_income_date + 1)) %>%
-    dplyr::filter(date <= Sys.Date()) %>%
-    split(.$id) %>%
-    purrr::map_dfr(~get_dividends(as.character(.$symbol), .$date), .id = "id") %>%
-    dplyr::filter(dividend > 0) %>%
-    dplyr::mutate(rn = row_number())
+# Methods -----------------------------------------------------------------
 
 
-  for(.rn in new_divs$rn) {
+#'@export
+print.portfolio <- function(x, ...){
+  checkmate::assert_class(x, "portfolio")
 
-    div <- dplyr::filter(new_divs, rn == .rn)
-    holding <- dplyr::filter(pobj$holdings, id == div$id)
+  cat("Portfolio", x$name, "\n")
+  cat("---------------------------", "\n")
 
-    pobj <- recieve_dividend(pobj,
-                             date   = div$date,
-                             symbol = div$symbol,
-                             quantity = holding$quantity,
-                             dividend = div$dividend,
-                             amount = div$dividend * holding$quantity)
+  if(nrow(x$market_value)>0){
+    mv <- dplyr::filter(x$market_value, date == max(date))
+    cat("Market Value as of:", as.character(mv$last_updated), "\n")
+    cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
+    cat("* Investments ", scales::dollar(mv$investments_value), "\n")
+    cat("* Cash        ", scales::dollar(mv$cash), "\n")
   }
 
-  pobj
+  if(nrow(x$holdings_market_value) > 0){
+    cat("Top 5 Holdings by Market Value:", "\n")
+    x$holdings_market_value %>%
+      dplyr::top_n(5, market_value) %>%
+      dplyr::arrange(-market_value) %>%
+      dplyr::select(symbol, market_value, cost_basis, unrealized_gain) %>%
+      print()
+    cat("\n")
+  }
+
+  cat("Recent Activity:", '\n')
+  get_activity(x) %>%
+    dplyr::top_n(5, id) %>%
+    dplyr::arrange(-id) %>%
+    print()
 }
 
+
+
+
+
+# Generics ----------------------------------------------------------------
+
+
+#' Process Portfolio Activity
+#'
+#' Generic function to process madstork activity, income, and trade class
+#' objects on a portfolio
+#'
+#' @param obj activity object to process
+#' @param pobj portfolio object
+#' @param ... additional arguments to pass to the portfolio object
+#'
+#' @return updated portfolio object with activity
+#' @export
+process <- function(obj, pobj, ...) {
+  UseMethod("process")
+}

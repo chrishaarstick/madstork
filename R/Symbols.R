@@ -58,7 +58,7 @@ get_ochlav <- function(symbols,
 
     symbol$date <- rownames(symbol)
 
-    symbol  %>%
+    symbol %>%
       dplyr::rename_all(dplyr::funs(tolower(gsub(
         paste0(sym, "."), "", .
       )))) %>%
@@ -225,8 +225,7 @@ get_dividend <- function(symbol, start_date, end_date) {
 #' symbols <- c("spy", "tlt")
 #' dividends <- symbols %>% get_annual_dividends(., start_date = "2016-01-01")
 #' }
-get_annual_dividends <- function(symbols,
-                                 error_handling = "pass") {
+get_annual_dividends <- function(symbols) {
   get_dividends(symbols,
                 start_date = Sys.Date() - 365,
                 end_date = Sys.Date()) %>%

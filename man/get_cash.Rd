@@ -17,6 +17,6 @@ getter function to return Portfolio's cash balance
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
 get_cash(.)
 }

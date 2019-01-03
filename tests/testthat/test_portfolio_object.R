@@ -5,6 +5,7 @@ library(madstork)
 library(tidyverse)
 library(lubridate)
 library(testthat)
+library(checkmate)
 
 context("Portfolio Class")
 
@@ -20,13 +21,17 @@ test_that("portfolio validator function works as expected", {
 })
 
 test_that("portfolio getter functions work as expected", {
-  expect_equal(portfolio("new_port", cash=100) %>% get_cash(.), 100)
+
+  p1 <- portfolio("new_port") %>%
+    make_deposit(amount = 100)
+
+  expect_equal(get_cash(p1), 100)
 })
 
 
 test_that("portfolio setter functions work as expected", {
 
-  p1 <- portfolio("new_port", cash=100)
+  p1 <- portfolio("new_port")
   p2 <- set_interest_rate(p1, 0.01)
 
   expect_equal(p1$interest_rate, 0)
@@ -36,34 +41,22 @@ test_that("portfolio setter functions work as expected", {
 
 test_that("market value update function work as expected", {
 
-  p1 <- portfolio("new_port", cash = 1000)
+  p1 <- portfolio("new_port") %>%
+    make_deposit(amount = 1000)
   p1.1 <- update_market_value(p1)
 
   expect_equal(p1.1$market_value$net_value, 1000)
 })
 
+
 test_that("dividend update function work as expected", {
 
 
-  p1 <- portfolio("new_port", cash=0) %>%
-    make_deposit(as.Date("2018-01-01"), amount = 1000)
+  p1 <- portfolio("new_port") %>%
+    make_deposit(as.Date("2018-01-01"), amount = 5000) %>%
+    make_buy(date = as.Date("2018-01-01"), symbol = "SPY", quantity = 10, price = 100) %>%
+    make_buy(date = as.Date("2018-07-01"), symbol = "SPY", quantity = 20, price = 100)
 
-  p1$holdings <- bind_rows(
-    tibble(id = 1,
-           date_added = as.Date("2018-01-01"),
-           transaction_date = as.Date("2018-01-01"),
-           symbol = "SPY",
-           quantity = 10,
-           price = 100,
-           desc = ""),
-    tibble(id = 2,
-           date_added = as.Date("2018-07-01"),
-           transaction_date = as.Date("2018-07-01"),
-           symbol = "SPY",
-           quantity = 20,
-           price = 100,
-           desc = "")
-  )
 
   p1$income <- tibble(
     date_added = as.Date("2018-03-31"),
@@ -91,4 +84,27 @@ test_that("dividend update function work as expected", {
   spy_divs2 <- get_dividends("SPY", start_date = max(spy_divs$date) + days(1))
   expect_equal(nrow(spy_divs2), 1)
   expect_equal(spy_divs2$dividend, 0)
+})
+
+
+
+test_that("portfolio constructor with activity works as expected", {
+
+  activity_list <- list(
+    deposit(date = today(), amount = 5000),
+    buy(date = as.Date("2018-12-27"), symbol = "SPY", quantity = 10, price = 100),
+    buy(date = as.Date("2018-12-28"), symbol = "TLT", quantity = 10, price = 100),
+    sell(date = as.Date("2018-12-28"), symbol = "SPY", quantity = 5, price = 105)
+  )
+
+  p1 <- portfolio("test", activity = activity_list)
+
+
+  expect_data_frame(p1$holdings, nrows = 2)
+  expect_equal(p1$holdings %>%
+                 filter(symbol == "SPY") %>%
+                 pull(quantity),
+               5)
+  expect_data_frame(p1$gains, nrows = 1)
+  expect_gt(nrow(p1$market_value), 0)
 })

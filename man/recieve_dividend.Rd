@@ -30,7 +30,8 @@ Function updates cash balance and adds record to activity and income records
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 2000) \%>\%
+portfolio("new_port") \%>\%
+make_deposit(amount = 2000) \%>\%
 make_buy(symbol = "SPY", quantity = 10, price = 100) \%>\%
 recieve_dividend(symbol = "SPY", quantity = 10, dividend = 2)
 }

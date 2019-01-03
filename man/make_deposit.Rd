@@ -27,6 +27,6 @@ portfolio activity
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
 make_deposit(date=Sys.Date(), amount = 100)
 }

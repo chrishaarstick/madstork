@@ -21,7 +21,7 @@ test_that("trade helper functions internals work correctly", {
 })
 
 test_that("trade buy function works as expected", {
-  p1 <- portfolio("new_port", cash=0) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(Sys.Date(), amount = 2000) %>%
     make_buy(Sys.Date(), symbol = "SPY", quantity = 10, price = 100)
 
@@ -36,7 +36,7 @@ test_that("trade buy function works as expected", {
 
 
 test_that("trade sell function works as expected", {
-  p1 <- portfolio("new_port", cash=0) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(amount = 2000) %>%
     make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
     make_sell(id = 1, quantity = 5, price = 105)
@@ -55,10 +55,10 @@ test_that("trade sell function works as expected", {
 
 
 test_that("trade transfer out function works as expected", {
-  p1 <- portfolio("new_port", cash=0) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(amount = 2000) %>%
     make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
-    transfer_out(id = 1)
+    transfer_out(id = 1, quantity = 10)
 
   expect_equal(nrow(p1$trades), 2)
   expect_equal(nrow(p1$holdings), 0)
@@ -69,7 +69,7 @@ test_that("trade transfer out function works as expected", {
 
 
 test_that("trade transfer in function works as expected", {
-  p1 <- portfolio("new_port", cash=0) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(amount = 2000) %>%
     make_buy(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100) %>%
     transfer_in(Sys.Date()-1, symbol = "TLT", quantity = 10, price = 200)
@@ -82,7 +82,7 @@ test_that("trade transfer in function works as expected", {
 
 test_that("gains function as expected from sell", {
 
-  p1 <- portfolio("new_port", cash=0) %>%
+  p1 <- portfolio("new_port") %>%
     make_deposit(amount = 2000) %>%
     make_buy(Sys.Date()-years(1), symbol = "SPY", quantity = 10, price = 100)
 

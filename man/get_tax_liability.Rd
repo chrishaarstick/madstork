@@ -17,6 +17,6 @@ Get Portfolio Tax Liability
 }
 \examples{
 library(tidyverse)
-portfolio("new_port", cash = 100) \%>\%
+portfolio("new_port") \%>\%
 get_tax_liability(.)
 }

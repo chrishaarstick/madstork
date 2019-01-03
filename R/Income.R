@@ -92,6 +92,42 @@ to_tibble.income <- function(x, ...) {
 }
 
 
+# Internal helper function to create empty income df
+empty_income_df <- function() {
+  tibble::tibble(
+    date_added = character(),
+    transaction_date = character(),
+    type = character(),
+    symbol = character(),
+    quantity = numeric(),
+    payment = numeric(),
+    amount = numeric(),
+    desc = character(),
+    id = numeric()
+  )
+}
+
+
+# Internal Function to execute an income object
+make_income <- function(pobj, income){
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_class(income, "income")
+
+  income_df <- to_tibble(income)
+  nid <- ifelse(nrow(pobj$income) == 0, 1, max(pobj$income$id) + 1)
+  income_df <- dplyr::mutate(income_df, id = nid)
+
+  activity <- income_df %>%
+    dplyr::mutate(desc = paste("income_id:", income_df$id)) %>%
+    dplyr::mutate(id = max(pobj$activity$id, 0) + 1) %>%
+    dplyr::select(date_added, transaction_date, type, amount, desc, id)
+
+  pobj$cash <- pobj$cash + income$amount
+  pobj$activity <- rbind(pobj$activity, activity)
+  pobj$income <- rbind(pobj$income, income_df)
+  pobj
+}
+
 
 #' Create Dividend Helper function
 #'
@@ -129,28 +165,6 @@ dividend <- function(date,
 }
 
 
-# Internal Function to execute an income object
-make_income <- function(pobj, income){
-  checkmate::assert_class(pobj, "portfolio")
-  checkmate::assert_class(income, "income")
-
-  income_df <- to_tibble(income)
-  nid <- ifelse(nrow(pobj$income) == 0, 1, max(pobj$income$id) + 1)
-  income_df <- dplyr::mutate(income_df, id = nid)
-
-  activity <- income_df %>%
-    dplyr::mutate(desc = paste("income_id:", income_df$id)) %>%
-    dplyr::mutate(id = max(pobj$activity$id, 0) + 1) %>%
-    dplyr::select(date_added, transaction_date, type, amount, desc, id)
-
-  pobj$cash <- pobj$cash + income$amount
-  pobj$activity <- rbind(pobj$activity, activity)
-  pobj$income <- rbind(pobj$income, income_df)
-  pobj
-}
-
-
-
 #' Recieve Dividend payment
 #'
 #' Function updates cash balance and adds record to activity and income records
@@ -163,7 +177,8 @@ make_income <- function(pobj, income){
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 2000) %>%
+#' portfolio("new_port") %>%
+#' make_deposit(amount = 2000) %>%
 #' make_buy(symbol = "SPY", quantity = 10, price = 100) %>%
 #' recieve_dividend(symbol = "SPY", quantity = 10, dividend = 2)
 recieve_dividend <- function(pobj,
@@ -174,7 +189,8 @@ recieve_dividend <- function(pobj,
                              amount = NULL,
                              desc = "") {
 
-  stopifnot(class(pobj) == "portfolio")
+  checkmate::assert_class(pobj, "portfolio")
+
   if(is.null(amount) & (is.null(dividend) | is.null(quantity))){
     stop("Please supply either valid amount or valid dividend and quantities",
          .call=FALSE)
@@ -192,22 +208,39 @@ recieve_dividend <- function(pobj,
   if (is.null(dividend)) {
     dividend <- amount / quantity
   }
+#
+#   if(! symbol %in% get_holdings(pobj)$symbol){
+#     stop("Dividend symbol not in current holdings",
+#          .call=FALSE)
+#   }
 
-  if(! symbol %in% get_holdings(pobj)$symbol){
-    stop("Dividend symbol not in current holdings",
-         .call=FALSE)
-  }
-
-  income <- dividend(date,
-                     symbol,
-                     quantity,
-                     dividend,
-                     amount,
-                     desc)
+  income <- dividend(date, symbol, quantity, dividend, amount, desc)
   make_income(pobj, income)
 }
 
 
+# Internal function to process bulk dividends
+# dividends input should be return of either get_past_dividends or get_new_dividends
+recieve_dividends <- function(pobj, dividends) {
+
+  checkmate::assert_class(pobj, "portfolio")
+  checkmate::assert_data_frame(dividends, ncol = 5)
+  checkmate::assert_set_equal(colnames(dividends),
+                              c("date", "symbol", "dividend", "quantity", "amount"))
+
+  for(rn in 1:nrow(dividends)) {
+
+    div <- dplyr::slice(dividends, rn)
+    pobj <- recieve_dividend(pobj,
+                             date     = div$date,
+                             symbol   = div$symbol,
+                             quantity = div$quantity,
+                             dividend = div$dividend,
+                             amount   = div$amount)
+  }
+
+  pobj
+}
 
 
 #' Create Interest Helper function
@@ -224,7 +257,7 @@ recieve_dividend <- function(pobj,
 #'
 #' @examples
 #' interest(Sys.Date(), 1000, 1, "monthly interest")
-interest <- function(date, principal, amount, desc = "") {
+interest <- function(date, principal = 1, amount, desc = "") {
   validate_income(
     new_income(
       type = "interest",
@@ -252,7 +285,8 @@ interest <- function(date, principal, amount, desc = "") {
 #'
 #' @examples
 #' library(tidyverse)
-#' portfolio("new_port", cash = 2000) %>%
+#' portfolio("new_port") %>%
+#' make_deposit(amount = 2000) %>%
 #' make_buy(symbol = "SPY", quantity = 10, price = 100) %>%
 #' recieve_interest(amount = 5)
 recieve_interest <- function(pobj,
@@ -280,5 +314,33 @@ set_interest_rate <- function(pobj, rate) {
   checkmate::assert_numeric(rate)
 
   pobj$interest_rate <- rate
+  pobj
+}
+
+
+#' @rdname process
+#' @export
+process.income <- function(obj, pobj, ...) {
+
+  checkmate::assert_class(pobj, "portfolio")
+
+  if(obj$type == "interest") {
+
+    pobj <- recieve_interest(pobj,
+                             date = obj$transaction_date,
+                             amount = obj$amount,
+                             desc = obj$desc)
+
+  } else if(obj$type == "dividend") {
+
+    pobj <- recieve_dividend(pobj,
+                             date = obj$transaction_date,
+                             symbol = obj$symbol,
+                             quantity = obj$quantity,
+                             dividend = obj$payment,
+                             amount = obj$amount,
+                             desc = obj$desc)
+  }
+
   pobj
 }

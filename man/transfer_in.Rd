@@ -28,7 +28,7 @@ Function adds holding from portfolio without a cash transaction
 }
 \examples{
 library(tidyverse)
- p1 <- portfolio("new_port", cash=0) \%>\%
+ p1 <- portfolio("new_port") \%>\%
        make_deposit(Sys.Date(), amount = 2000) \%>\%
        transfer_in(Sys.Date()-1, symbol = "SPY", quantity = 10, price = 100)
 }
