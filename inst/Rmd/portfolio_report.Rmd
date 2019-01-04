@@ -116,7 +116,7 @@ get_market_value(port) %>%
 ```{r}
 port$holdings_market_value %>% 
   summarise(investments_annual_income = sum(annual_income)) %>% 
-  mutate(tax_liability = port$tax_liability,
+  mutate(tax_liability = get_tax_liability(port),
          net_income = investments_annual_income - tax_liability) %>% 
   rename(annual_income = investments_annual_income) %>% 
   gather(metric, amount) %>% 

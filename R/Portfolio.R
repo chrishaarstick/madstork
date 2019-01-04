@@ -322,7 +322,11 @@ get_income <- function(pobj) {
 #' get_tax_liability(.)
 get_tax_liability <- function(pobj) {
   checkmate::assert_class(pobj, "portfolio")
-  pobj$tax_liability
+
+  pobj$gains %>%
+    dplyr::filter(lubridate::year(sale_date) == lubridate::year(Sys.Date())) %>%
+    dplyr::summarise_at("tax_liability", sum) %>%
+    dplyr::pull()
 }
 
 
@@ -398,7 +402,6 @@ settle_tax_liability <- function(pobj, date = Sys.Date(), amount, withdraw = FAL
     pobj <- make_withdraw(pobj, date, amount, desc = "Tax Payment")
   }
   pobj$tax_liability <- pobj$tax_liability - amount
-
 
   pobj
 }
@@ -538,7 +541,7 @@ print.portfolio <- function(x, ...){
     cat("Market Value as of:", as.character(mv$last_updated), "\n")
     cat("* Net Value   ", scales::dollar(mv$net_value), "\n")
     cat("* Investments ", scales::dollar(mv$investments_value), "\n")
-    cat("* Cash        ", scales::dollar(mv$cash), "\n")
+    cat("* Cash        ", scales::dollar(mv$cash), "\n\n")
   }
 
   if(nrow(x$holdings_market_value) > 0){

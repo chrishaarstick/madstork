@@ -103,9 +103,9 @@ update_market_value <- function(pobj, prices = NULL) {
 
   current_market_value <- tibble::tibble(
     last_updated = Sys.time(),
+    date = Sys.Date(),
     cash = as.numeric(get_cash(pobj)),
     investments_value = sum(holdings_market_value$market_value),
-   # investments_annual_income = sum(holdings_market_value$annual_income),
     loans = as.numeric(0),
     tax_liability = as.numeric(get_tax_liability(pobj))
   ) %>%
