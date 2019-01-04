@@ -230,11 +230,22 @@ get_past_tax_liability <- function(pobj) {
   past_holding_dates <- get_past_holdings(pobj) %>%
     distinct(date)
 
-  pobj$gains %>%
-    arrange(sale_date) %>%
-    select(date = sale_date, tax_liability) %>%
-    group_by(date) %>%
-    summarise_at('tax_liability', sum) %>%
+  gains <- pobj$gains
+
+  if(nrow(gains) == 0) {
+    gains <- past_holding_dates %>%
+      dplyr::mutate(tax_liability = 0)
+
+  } else {
+
+    gains <- gains %>%
+      arrange(sale_date) %>%
+      select(date = sale_date, tax_liability) %>%
+      group_by(date) %>%
+      summarise_at('tax_liability', sum)
+  }
+
+  gains %>%
     right_join(past_holding_dates, by = "date") %>%
     replace_na(list(tax_liability = 0)) %>%
     group_by(year = lubridate::year(date)) %>%

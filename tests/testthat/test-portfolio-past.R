@@ -16,6 +16,10 @@ p1 <- portfolio(name = "test") %>%
   make_sell(date = as.Date("2018-07-09"), id = 1, quantity = 5, price = 260, trans_cost = 0)
 
 
+p2 <- portfolio(name = "test") %>%
+  make_deposit(date = as.Date("2018-01-01"), amount = 10000) %>%
+  make_buy(date = as.Date("2018-01-08"), symbol = "SPY", quantity = 10, price = 240)
+
 
 test_that("get past holdings works as expected", {
 
@@ -63,15 +67,23 @@ test_that("get past cash works as expected", {
 
 test_that("get past tax liability works as expected", {
 
-  past_tax <- get_past_tax_liability(p1)
-  expect_data_frame(past_tax, ncols = 2)
-  expect_equal(min(past_tax$date), as.Date("2018-01-08"))
+  p1_past_tax <- get_past_tax_liability(p1)
+  expect_data_frame(p1_past_tax, ncols = 2)
+  expect_equal(min(p1_past_tax$date), as.Date("2018-01-08"))
   expect_equal(
-    past_tax  %>%
+    p1_past_tax  %>%
       filter(year(date) == 2018) %>%
       filter(date == max(date)) %>%
       pull(tax_liability),
     (10-5)*(260-240) * .30
+  )
+
+  p2_past_tax <- get_past_tax_liability(p2)
+  expect_equal(
+    p2_past_tax  %>%
+      filter(date == max(date)) %>%
+      pull(tax_liability),
+    0
   )
 })
 
