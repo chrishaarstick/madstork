@@ -55,6 +55,7 @@ portfolio <- function(name, activity = NULL) {
     }
 
     pobj <- past_market_value(pobj)
+    pobj$holdings_market_value <- update_holdings_market_value(pobj)
   }
 
   pobj
