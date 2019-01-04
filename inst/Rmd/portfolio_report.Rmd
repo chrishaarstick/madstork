@@ -88,9 +88,9 @@ Column {data-width=350}
 
 ```{r}
 knitr::kable(
-  c("last updated" = max(port$market_value$last_updated),
-    "initialized on" = port$date_initialized,
-    "created on" = port$date_created),
+  c("last updated" = as.character(max(port$market_value$last_updated)),
+    "initialized on" = as.character(port$date_initialized),
+    "created on" = as.character(port$date_created)),
   col.names = port$name)
 ```
 
@@ -227,7 +227,8 @@ highchart() %>%
   hc_add_series_labels_values(df$name, df$y,
                               type = "pie",  size = '100%', innerSize = "50%",
                               dataLabels = list(distance = -40, 
-                                                color = '#ffffff'))
+                                                color = '#ffffff')) %>% 
+  hc_tooltip( pointFormat = '{point.y:.1f}%</span><br/>')
 ```
 
 
@@ -242,7 +243,8 @@ if(nrow(activity)  > 0) {
     activity,
     options = list(
       pageLength = 20,
-      lengthMenu = c(10, 20)),
+      lengthMenu = c(10, 20), 
+      order = list(list(2, 'desc'))),
     rownames = FALSE,
     filter = 'top') %>% 
     DT::formatCurrency(c("amount"))
@@ -270,14 +272,14 @@ port_income <- port$income %>%
 
 
 port_flows <- port$activity %>% 
-   mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
+  mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
   filter(type %in% c("deposit"),
          ! grepl("trade_id", desc)) %>% 
   group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
   summarise(deposits = sum(amount)) %>% 
   full_join(
     port$activity %>% 
-       mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
+      mutate_at(c("date_added", "transaction_date"), as.Date) %>% 
       filter(type %in% c("fee", "withdraw"), 
              ! grepl("trade_id", desc)) %>% 
       group_by(month = ceiling_date(transaction_date, unit = "month") - days(1)) %>%
@@ -287,7 +289,8 @@ port_flows <- port$activity %>%
 
 
 port_cash <- port$market_value %>% 
-  group_by(month = as.Date(ceiling_date(last_updated, unit = "month")) - days(1)) %>% 
+  group_by(month = as.Date(ceiling_date(date, unit = "month")) - days(1)) %>% 
+  filter(date == max(date)) %>% 
   filter(last_updated == max(last_updated)) %>% 
   ungroup() %>% 
   select(month, cash)
@@ -346,6 +349,7 @@ port_flows %>%
     by = "month"
   ) %>% 
   replace_na(list(income = 0, deposits = 0, outflows = 0)) %>% 
+  arrange(month) %>% 
   mutate(month = format(month, '%b-%y'),
          net = income + deposits - outflows) %>% 
   formattable(.,
