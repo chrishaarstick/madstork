@@ -228,15 +228,19 @@ recieve_dividends <- function(pobj, dividends) {
   checkmate::assert_set_equal(colnames(dividends),
                               c("date", "symbol", "dividend", "quantity", "amount"))
 
-  for(rn in 1:nrow(dividends)) {
+  n <- nrow(dividends)
+  if(n > 0) {
 
-    div <- dplyr::slice(dividends, rn)
-    pobj <- recieve_dividend(pobj,
-                             date     = div$date,
-                             symbol   = div$symbol,
-                             quantity = div$quantity,
-                             dividend = div$dividend,
-                             amount   = div$amount)
+    for(rn in 1:n) {
+
+      div <- dplyr::slice(dividends, rn)
+      pobj <- recieve_dividend(pobj,
+                               date     = div$date,
+                               symbol   = div$symbol,
+                               quantity = div$quantity,
+                               dividend = div$dividend,
+                               amount   = div$amount)
+    }
   }
 
   pobj
