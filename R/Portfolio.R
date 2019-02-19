@@ -430,9 +430,8 @@ get_portfolio_returns <- function(pobj, start_date, end_date = Sys.Date()) {
     dplyr::group_by(date) %>%
     dplyr::filter(last_updated == max(last_updated)) %>%
     dplyr::ungroup() %>%
-    #dplyr::mutate(net_investment_value = investments_value + cash - c(0, diff(cash))) %>%
     dplyr::summarise_at(c("cash", "investments_value", "net_value"),
-                        funs((last(.) - first(.))/first(.)))
+                        funs((dplyr::last(.) - dplyr::first(.))/dplyr::first(.)))
 }
 
 
