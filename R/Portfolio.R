@@ -49,13 +49,7 @@ portfolio <- function(name, activity = NULL) {
   )
 
   if(! is.null(activity)) {
-
-    for(i in seq_along(activity)) {
-      pobj <- process(activity[[i]], pobj)
-    }
-
-    pobj <- past_market_value(pobj)
-    pobj$holdings_market_value <- update_holdings_market_value(pobj)
+    pobj <- intialize_portfolio(pobj, activity)
   }
 
   pobj

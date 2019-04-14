@@ -92,7 +92,7 @@ test_that("dividend update function work as expected", {
 
 
 activity_list <- list(
-  deposit(date = today(), amount = 5000),
+  deposit(date = as.Date("2018-12-25"), amount = 5000),
   buy(date = as.Date("2018-12-27"), symbol = "SPY", quantity = 10, price = 100),
   buy(date = as.Date("2018-12-28"), symbol = "TLT", quantity = 10, price = 100),
   sell(date = as.Date("2018-12-28"), symbol = "SPY", quantity = 5, price = 105)
@@ -115,7 +115,6 @@ test_that("portfolio constructor with activity works as expected", {
 
 
 test_that("market value update on existing portfolio works as expected", {
-
 
   p1.1 <- update_market_value(p1)
   expect_gt(nrow(p1.1$market_value), nrow(p1$market_value))
