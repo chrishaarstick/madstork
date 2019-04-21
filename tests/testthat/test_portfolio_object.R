@@ -112,10 +112,3 @@ test_that("portfolio constructor with activity works as expected", {
   expect_data_frame(p1$holdings_market_value, nrows = 2)
   expect_gt(nrow(p1$market_value), 0)
 })
-
-
-test_that("market value update on existing portfolio works as expected", {
-
-  p1.1 <- update_market_value(p1)
-  expect_gt(nrow(p1.1$market_value), nrow(p1$market_value))
-})
