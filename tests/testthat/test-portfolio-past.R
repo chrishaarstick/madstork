@@ -24,9 +24,9 @@ activity <- list(
 
 test_that("initialize portfolio works as expected", {
 
-  p2 <- portfolio(name = "init", activity = activity)
-  expect_class(p2, "portfolio")
- # expect_equal(last(p2$market_value$investments_value), p1$market_value$investments_value)
-  expect_gte(nrow(p2$income), 0)
+  # p2 <- portfolio(name = "init", activity = activity)
+  # expect_class(p2, "portfolio")
+  # expect_equal(last(p2$market_value$investments_value), p1$market_value$investments_value)
+  # expect_gte(nrow(p2$income), 0)
 })
 

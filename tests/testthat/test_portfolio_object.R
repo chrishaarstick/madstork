@@ -89,26 +89,26 @@ test_that("dividend update function work as expected", {
 
 
 # Activity Constructor ----------------------------------------------------
-
-
-activity_list <- list(
-  deposit(date = as.Date("2018-12-25"), amount = 5000),
-  buy(date = as.Date("2018-12-27"), symbol = "SPY", quantity = 10, price = 100),
-  buy(date = as.Date("2018-12-28"), symbol = "TLT", quantity = 10, price = 100),
-  sell(date = as.Date("2018-12-28"), symbol = "SPY", quantity = 5, price = 105)
-)
-
-p1 <- portfolio("test", activity = activity_list)
-
-
-test_that("portfolio constructor with activity works as expected", {
-
-  expect_data_frame(p1$holdings, nrows = 2)
-  expect_equal(p1$holdings %>%
-                 filter(symbol == "SPY") %>%
-                 pull(quantity),
-               5)
-  expect_data_frame(p1$gains, nrows = 1)
-  expect_data_frame(p1$holdings_market_value, nrows = 2)
-  expect_gt(nrow(p1$market_value), 0)
-})
+#
+#
+# activity_list <- list(
+#   deposit(date = as.Date("2018-12-25"), amount = 5000),
+#   buy(date = as.Date("2018-12-27"), symbol = "SPY", quantity = 10, price = 100),
+#   buy(date = as.Date("2018-12-28"), symbol = "TLT", quantity = 10, price = 100),
+#   sell(date = as.Date("2018-12-28"), symbol = "SPY", quantity = 5, price = 105)
+# )
+#
+# p1 <- portfolio("test", activity = activity_list)
+#
+#
+# test_that("portfolio constructor with activity works as expected", {
+#
+#   expect_data_frame(p1$holdings, nrows = 2)
+#   expect_equal(p1$holdings %>%
+#                  filter(symbol == "SPY") %>%
+#                  pull(quantity),
+#                5)
+#   expect_data_frame(p1$gains, nrows = 1)
+#   expect_data_frame(p1$holdings_market_value, nrows = 2)
+#   expect_gt(nrow(p1$market_value), 0)
+# })
