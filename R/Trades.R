@@ -12,6 +12,7 @@
 #' @param price price of shares. numeric type
 #' @param amount trade dollar amount. numeric type
 #' @param desc trade description. string type
+#' @param trans_cost transaction cost (dollars per share)
 #'
 #' @return object of class activity
 new_trade <- function(type,
@@ -20,7 +21,8 @@ new_trade <- function(type,
                       quantity,
                       price,
                       amount,
-                      desc) {
+                      desc,
+                      trans_cost) {
   stopifnot(is.character(type))
   stopifnot(lubridate::is.Date(date))
   stopifnot(is.character(symbol))
@@ -28,6 +30,7 @@ new_trade <- function(type,
   stopifnot(is.numeric(price))
   stopifnot(is.numeric(amount))
   stopifnot(is.character(desc))
+  stopifnot(is.numeric(trans_cost))
 
   structure(
     list(
@@ -38,7 +41,8 @@ new_trade <- function(type,
       quantity = quantity,
       price = price,
       amount = amount,
-      desc = desc
+      desc = desc,
+      trans_cost = trans_cost
     ),
     class = "trade"
   )
@@ -72,6 +76,9 @@ validate_trade <- function(x) {
   if (nchar(x$symbol) > 4) {
     message("double check symbol ticker - character length greater than 4")
   }
+  if (x$trans_cost < 0) {
+    message("negative transaction costs not allowed")
+  }
   x
 }
 
@@ -89,7 +96,8 @@ to_tibble.trade <- function(x, ...) {
     quantity = as.numeric(x$quantity),
     price = as.numeric(x$price),
     amount = as.numeric(x$amount),
-    desc = as.character(x$desc)
+    desc = as.character(x$desc),
+    trans_cost = as.numeric(x$trans_cost)
   )
 }
 
@@ -105,6 +113,7 @@ empty_trades_df <- function() {
     price = numeric(),
     amount = numeric(),
     desc = character(),
+    trans_cost = numeric(),
     id = numeric()
   )
 }
@@ -129,7 +138,8 @@ buy <- function(date,
                 symbol,
                 quantity,
                 price,
-                desc = "") {
+                desc = "",
+                trans_cost = .05) {
   validate_trade(new_trade(
     type = "buy",
     date,
@@ -137,7 +147,8 @@ buy <- function(date,
     quantity,
     price,
     amount = price * quantity,
-    desc
+    desc,
+    trans_cost
   ))
 }
 
@@ -151,7 +162,6 @@ buy <- function(date,
 #'
 #' @param pobj portfolio object
 #' @inheritParams buy
-#' @param trans_cost transaction cost (dollars per share)
 #' @importFrom magrittr %>%
 #'
 #' @return updated portfolio object
@@ -171,7 +181,7 @@ make_buy <- function(pobj,
                      trans_cost = .05) {
   checkmate::assert_class(pobj, "portfolio")
 
-  trade <- buy(date, symbol, quantity, price, desc)
+  trade <- buy(date, symbol, quantity, price, desc, trans_cost)
 
   nid <- ifelse(nrow(pobj$trades) == 0, 1, max(pobj$trades$id) + 1)
   trade_df <- to_tibble(trade) %>%
@@ -233,7 +243,8 @@ sell <- function(date,
                  symbol,
                  quantity,
                  price,
-                 desc = "") {
+                 desc = "",
+                 trans_cost = .05) {
   validate_trade(new_trade(
     type = "sell",
     date,
@@ -241,7 +252,8 @@ sell <- function(date,
     quantity,
     price,
     amount = price * quantity,
-    desc
+    desc,
+    trans_cost
   ))
 }
 
@@ -286,7 +298,7 @@ make_sell <- function(pobj,
   }
 
   symbol <- as.character(holding$symbol)
-  trade <- sell(date, symbol, quantity, price, desc)
+  trade <- sell(date, symbol, quantity, price, desc, trans_cost)
 
   if (trade$quantity > holding$quantity) {
     stop("Trade quantity greater than holding amount. No short trades allowed.",
@@ -414,7 +426,8 @@ transfer <- function(date,
       quantity,
       price,
       amount = price * quantity,
-      desc
+      desc,
+      trans_cost = 0
     )
   )
 }
