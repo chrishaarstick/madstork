@@ -4,7 +4,7 @@
 \alias{buy}
 \title{Create Buy Trade Helper function}
 \usage{
-buy(date, symbol, quantity, price, desc = "")
+buy(date, symbol, quantity, price, desc = "", trans_cost = 0.05)
 }
 \arguments{
 \item{date}{date of transaction. Date type}
@@ -16,6 +16,8 @@ buy(date, symbol, quantity, price, desc = "")
 \item{price}{price of shares. numeric type}
 
 \item{desc}{trade description. string type}
+
+\item{trans_cost}{transaction cost (dollars per share)}
 }
 \value{
 buy type trade object

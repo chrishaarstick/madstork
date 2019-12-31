@@ -4,7 +4,7 @@
 \alias{new_trade}
 \title{Trade Object Constructor function}
 \usage{
-new_trade(type, date, symbol, quantity, price, amount, desc)
+new_trade(type, date, symbol, quantity, price, amount, desc, trans_cost)
 }
 \arguments{
 \item{type}{trade type. string type.}
@@ -20,6 +20,8 @@ new_trade(type, date, symbol, quantity, price, amount, desc)
 \item{amount}{trade dollar amount. numeric type}
 
 \item{desc}{trade description. string type}
+
+\item{trans_cost}{transaction cost (dollars per share)}
 }
 \value{
 object of class activity

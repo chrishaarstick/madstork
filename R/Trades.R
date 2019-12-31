@@ -203,8 +203,8 @@ make_buy <- function(pobj,
       desc = paste("trade_id:", trade_df$id)
     )
 
-  pobj$trades <- rbind(pobj$trades, trade_df)
-  pobj$holdings <- rbind(
+  pobj$trades <- dplyr::bind_rows(pobj$trades, trade_df)
+  pobj$holdings <- dplyr::bind_rows(
     pobj$holdings,
     trade_df %>%
       dplyr::select(
@@ -468,7 +468,7 @@ transfer_out <- function(pobj,
   trade <- transfer(date, symbol, quantity, holding$price, type = "out", desc)
   trade_df <- to_tibble(trade) %>%
     dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
-  pobj$trades <- rbind(pobj$trades, trade_df)
+  pobj$trades <- dplyr::bind_rows(pobj$trades, trade_df)
 
   if(quantity == holding$quantity) {
     pobj$holdings <- pobj$holdings %>%
@@ -508,8 +508,8 @@ transfer_in <- function(pobj,
   trade_df <- to_tibble(trade) %>%
     dplyr::mutate(id = max(pobj$trades$id, 0) + 1)
 
-  pobj$trades <- rbind(pobj$trades, trade_df)
-  pobj$holdings <- rbind(
+  pobj$trades <- dplyr::bind_rows(pobj$trades, trade_df)
+  pobj$holdings <- dplyr::bind_rows(
     pobj$holdings,
     trade_df %>%
       dplyr::select(
