@@ -105,8 +105,8 @@ to_tibble.trade <- function(x, ...) {
 # Internal Trade Tibble Helper
 empty_trades_df <- function() {
   tibble::tibble(
-    date_added = character(),
-    transaction_date = character(),
+    date_added = as.Date(character()),
+    transaction_date = as.Date(character()),
     type = character(),
     symbol = character(),
     quantity = numeric(),

@@ -95,8 +95,8 @@ to_tibble.income <- function(x, ...) {
 # Internal helper function to create empty income df
 empty_income_df <- function() {
   tibble::tibble(
-    date_added = character(),
-    transaction_date = character(),
+    date_added = as.Date(character()),
+    transaction_date = as.Date(character()),
     type = character(),
     symbol = character(),
     quantity = numeric(),

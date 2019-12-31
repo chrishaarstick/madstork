@@ -73,8 +73,8 @@ to_tibble.activity <- function(x, ...) {
 # Internal Helper function to create empty activity df
 empty_activity_df <- function() {
   tibble::tibble(
-    date_added = character(),
-    transaction_date = character(),
+    date_added = as.Date(character()),
+    transaction_date = as.Date(character()),
     type = character(),
     amount = numeric(),
     desc = character(),

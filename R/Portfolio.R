@@ -475,8 +475,8 @@ load_portfolio <- function(path){
 empty_holdings_df <- function() {
   tibble::tibble(
     id = integer(),
-    date_added = character(),
-    transaction_date = character(),
+    date_added = as.Date(character()),
+    transaction_date = as.Date(character()),
     symbol = character(),
     quantity = numeric(),
     price = numeric(),
@@ -489,7 +489,7 @@ empty_holdings_df <- function() {
 empty_market_value_df <- function() {
   tibble::tibble(
     last_updated = as.character(),
-    date = as.character(),
+    date = as.Date(character()),
     cash = numeric(),
     investments_value = numeric(),
     loans = numeric(),
