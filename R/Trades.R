@@ -328,11 +328,11 @@ make_sell <- function(pobj,
     )
 
   pobj$tax_liability <- pobj$tax_liability + gain$tax_liability
-  pobj$trades <- rbind(pobj$trades, trade_df)
-  pobj$holdings <- rbind(dplyr::filter(pobj$holdings, id != Id),
+  pobj$trades <- dplyr::bind_rows(pobj$trades, trade_df)
+  pobj$holdings <- dplyr::bind_rows(dplyr::filter(pobj$holdings, id != Id),
                          new_holding) %>%
     dplyr::arrange(id)
-  pobj$gains <- rbind(pobj$gains, gain)
+  pobj$gains <- dplyr::bind_rows(pobj$gains, gain)
 
   pobj
 }
