@@ -4,8 +4,13 @@
 \alias{get_ochlav}
 \title{Get Securities Price and Volume Data}
 \usage{
-get_ochlav(symbols, start_date = "1990-01-01", end_date = Sys.Date(),
-  error_handling = "pass", warning = FALSE)
+get_ochlav(
+  symbols,
+  start_date = "1990-01-01",
+  end_date = Sys.Date(),
+  error_handling = "pass",
+  warning = FALSE
+)
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}

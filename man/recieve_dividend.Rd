@@ -4,8 +4,15 @@
 \alias{recieve_dividend}
 \title{Recieve Dividend payment}
 \usage{
-recieve_dividend(pobj, date = Sys.Date(), symbol, quantity = NULL,
-  dividend = NULL, amount = NULL, desc = "")
+recieve_dividend(
+  pobj,
+  date = Sys.Date(),
+  symbol,
+  quantity = NULL,
+  dividend = NULL,
+  amount = NULL,
+  desc = ""
+)
 }
 \arguments{
 \item{pobj}{portfolio object}

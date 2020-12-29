@@ -4,9 +4,13 @@
 \alias{risk_report}
 \title{MadStork Risk Report Function}
 \usage{
-risk_report(portfolio, output_file = "risk-report.html",
+risk_report(
+  portfolio,
+  output_file = "risk-report.html",
   output_dir = getwd(),
-  pandoc_dir = "C:/Program Files/RStudio/bin/pandoc", ...)
+  pandoc_dir = "C:/Program Files/RStudio/bin/pandoc",
+  ...
+)
 }
 \arguments{
 \item{portfolio}{portfolio object}

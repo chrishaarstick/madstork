@@ -4,9 +4,13 @@
 \alias{report.portfolio}
 \title{Portfolio Performance Report}
 \usage{
-\method{report}{portfolio}(portfolio,
-  output_file = "performance-report.html", output_dir = getwd(),
-  pandoc_dir = "C:/Program Files/RStudio/bin/pandoc", ...)
+\method{report}{portfolio}(
+  portfolio,
+  output_file = "performance-report.html",
+  output_dir = getwd(),
+  pandoc_dir = "C:/Program Files/RStudio/bin/pandoc",
+  ...
+)
 }
 \arguments{
 \item{portfolio}{portfolio object}

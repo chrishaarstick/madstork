@@ -4,8 +4,10 @@
 \name{test_prices}
 \alias{test_prices}
 \title{Test Prices}
-\format{An data.frame with with four variables: \code{last_updated}, \code{symbol},
-  \code{price}, and \code{dividend}.}
+\format{
+An data.frame with with four variables: \code{last_updated}, \code{symbol},
+  \code{price}, and \code{dividend}.
+}
 \usage{
 test_prices
 }

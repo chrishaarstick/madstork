@@ -54,12 +54,12 @@ get_ochlav <- function(symbols,
       yahoo.warning = warning,
       auto.assign = FALSE
     ) %>%
-      to_tibble()
-
-    symbol$date <- rownames(symbol)
+      as.data.frame() %>%
+      dplyr::mutate(date = as.character(rownames(.))) %>%
+      tibble::as_tibble()
 
     symbol %>%
-      dplyr::rename_all(dplyr::funs(tolower(gsub(
+      dplyr::rename_all(list(~tolower(gsub(
         paste0(sym, "."), "", .
       )))) %>%
       dplyr::rename(adj_close = adjusted) %>%

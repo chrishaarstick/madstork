@@ -4,7 +4,9 @@
 \name{test_estimates}
 \alias{test_estimates}
 \title{Test Estimates}
-\format{An estimates object.}
+\format{
+An estimates object.
+}
 \usage{
 test_estimates
 }

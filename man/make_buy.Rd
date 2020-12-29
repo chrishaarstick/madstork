@@ -4,8 +4,15 @@
 \alias{make_buy}
 \title{Make Buy Trade Execution function}
 \usage{
-make_buy(pobj, date = Sys.Date(), symbol, quantity, price, desc = "",
-  trans_cost = 0.05)
+make_buy(
+  pobj,
+  date = Sys.Date(),
+  symbol,
+  quantity,
+  price,
+  desc = "",
+  trans_cost = 0.05
+)
 }
 \arguments{
 \item{pobj}{portfolio object}

@@ -4,8 +4,16 @@
 \alias{new_gains}
 \title{Realized Gains Constructor function}
 \usage{
-new_gains(symbol, quantity, purchase_date, purchase_price, sale_date,
-  sale_price, gain, type)
+new_gains(
+  symbol,
+  quantity,
+  purchase_date,
+  purchase_price,
+  sale_date,
+  sale_price,
+  gain,
+  type
+)
 }
 \arguments{
 \item{symbol}{symbol ticker. character type}

@@ -4,8 +4,13 @@
 \alias{get_prices}
 \title{Get Historical Security Prices}
 \usage{
-get_prices(symbols, start_date = "1990-01-01", end_date = Sys.Date(),
-  error_handling = "pass", warning = FALSE)
+get_prices(
+  symbols,
+  start_date = "1990-01-01",
+  end_date = Sys.Date(),
+  error_handling = "pass",
+  warning = FALSE
+)
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}

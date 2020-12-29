@@ -4,8 +4,15 @@
 \alias{make_sell}
 \title{Make Sell Trade Execution function}
 \usage{
-make_sell(pobj, id, date = Sys.Date(), quantity, price, desc = "",
-  trans_cost = 0.05)
+make_sell(
+  pobj,
+  id,
+  date = Sys.Date(),
+  quantity,
+  price,
+  desc = "",
+  trans_cost = 0.05
+)
 }
 \arguments{
 \item{pobj}{portfolio object}

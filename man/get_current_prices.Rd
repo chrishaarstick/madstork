@@ -4,8 +4,12 @@
 \alias{get_current_prices}
 \title{Get Current Security Prices}
 \usage{
-get_current_prices(symbols, dividends = FALSE, error_handling = "pass",
-  warning = FALSE)
+get_current_prices(
+  symbols,
+  dividends = FALSE,
+  error_handling = "pass",
+  warning = FALSE
+)
 }
 \arguments{
 \item{symbols}{vector of stock symbol characters. can be 1 or more}
